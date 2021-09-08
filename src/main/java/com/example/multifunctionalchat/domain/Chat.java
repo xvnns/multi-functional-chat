@@ -1,13 +1,12 @@
 package com.example.multifunctionalchat.domain;
 
-import lombok.Data;
 import javax.persistence.*;
-import java.util.List;
+import java.util.Set;
 
-@Data
 @Entity
 @Table(name = "chat")
 public class Chat {
+    
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "id", nullable = false)
@@ -21,5 +20,70 @@ public class Chat {
     private User creator;
 
     @ManyToMany(fetch = FetchType.LAZY, mappedBy = "chats")
-    private List<User> users;
+    private Set<User> users;
+
+    @OneToMany(fetch = FetchType.LAZY, mappedBy = "chat")
+    private Set<Message> messages;
+
+    private boolean isPrivate;
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public User getCreator() {
+        return creator;
+    }
+
+    public void setCreator(User creator) {
+        this.creator = creator;
+    }
+
+    public Set<User> getUsers() {
+        return users;
+    }
+
+    public void setUsers(Set<User> users) {
+        this.users = users;
+    }
+
+    public Set<Message> getMessages() {
+        return messages;
+    }
+
+    public void setMessages(Set<Message> messages) {
+        this.messages = messages;
+    }
+
+    public boolean isPrivate() {
+        return isPrivate;
+    }
+
+    public void setPrivate(boolean aPrivate) {
+        isPrivate = aPrivate;
+    }
+
+    @Override
+    public String toString() {
+        return "Chat{" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                ", creator=" + creator +
+                ", users=" + users +
+                ", messages=" + messages +
+                ", isPrivate=" + isPrivate +
+                '}';
+    }
 }
