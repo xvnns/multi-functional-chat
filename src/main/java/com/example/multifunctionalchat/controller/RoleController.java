@@ -2,6 +2,7 @@ package com.example.multifunctionalchat.controller;
 
 import com.example.multifunctionalchat.domain.Role;
 import com.example.multifunctionalchat.service.RoleService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -16,7 +17,12 @@ import javax.validation.Valid;
 @RequestMapping("/role")
 public class RoleController {
 
-    RoleService roleService;
+    private final RoleService roleService;
+
+    @Autowired
+    public RoleController(RoleService roleService) {
+        this.roleService = roleService;
+    }
 
     @GetMapping
     public String getRoleList(Model model) {

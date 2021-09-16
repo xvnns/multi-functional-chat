@@ -2,6 +2,7 @@ package com.example.multifunctionalchat.controller;
 
 import com.example.multifunctionalchat.domain.Chat;
 import com.example.multifunctionalchat.service.ChatService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -16,7 +17,12 @@ import javax.validation.Valid;
 @RequestMapping("/chat")
 public class ChatController {
 
-    private ChatService chatService;
+    private final ChatService chatService;
+
+    @Autowired
+    public ChatController(ChatService chatService) {
+        this.chatService = chatService;
+    }
 
     @GetMapping
     public String getChatList(Model model) {
