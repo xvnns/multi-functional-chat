@@ -1,62 +1,65 @@
 package com.example.multifunctionalchat.controller;
 
 import com.example.multifunctionalchat.domain.User;
-import com.example.multifunctionalchat.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.example.multifunctionalchat.service.UserService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
+import javax.validation.Valid;
+
 @Controller
 @RequestMapping("/user")
 public class UserController {
 
-    private final UserRepository userRepository;
-
-    @Autowired
-    public UserController(UserRepository userRepository) {
-        this.userRepository = userRepository;
-    }
+    private UserService userService;
 
     @GetMapping
     public String getUserList(Model model) {
-        model.addAttribute("users", userRepository.findAll());
-        return "user";
+        model.addAttribute("users", userService.getAll());
+        return null;
     }
 
     @GetMapping("/get/{id}")
     public String getUser(@PathVariable Long id, Model model) {
-        User user = userRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Invalid user Id:" + id));
+        User user = userService.getById(id);
         model.addAttribute("user", user);
-        return "user";
+        return null;
     }
 
     @PostMapping("/add-user")
-    public String addUser(User user, Model model) {
-        userRepository.save(user);
-        return "redirect:/user";
+    public String addUser(@Valid User user, BindingResult bindingResult) {
+        if (bindingResult.hasErrors()) {
+            return null;
+        }
+        userService.add(user);
+        return null;
     }
 
     @GetMapping("/edit/{id}")
     public String showUpdateForm(@PathVariable("id") long id, Model model) {
-        User user = userRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Invalid user Id:" + id));
+        User user = userService.getById(id);
         model.addAttribute("user", user);
-        return "update-user";
+        return null;
     }
 
     @PostMapping("/update/{id}")
-    public String updateUser(@PathVariable("id") long id, User user, Model model) {
-        userRepository.save(user);
-        return "redirect:/user";
+    public String updateUser(@PathVariable("id") long id, @Valid User user, BindingResult bindingResult) {
+        if(bindingResult.hasErrors()) {
+            return null;
+        }
+        userService.add(user);
+        return null;
     }
 
     @GetMapping("/delete/{id}")
-    public String deleteUser(@PathVariable("id") long id, Model model) {
-        User user = userRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Invalid user Id:" + id));
-        userRepository.delete(user);
-        return "redirect:/user";
+    public String deleteUser(@PathVariable("id") long id) {
+        User user = userService.getById(id);
+        userService.delete(user);
+        return null;
     }
 }

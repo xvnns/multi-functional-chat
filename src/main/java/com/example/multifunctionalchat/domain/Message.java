@@ -1,6 +1,8 @@
 package com.example.multifunctionalchat.domain;
 
 import javax.persistence.*;
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
 import java.util.Date;
 
 @Entity
@@ -12,18 +14,22 @@ public class Message {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
 
-    @Column(name = "content", nullable = false)
+    @Column(name = "content")
+    @NotBlank(message = "Message content cannot be null")
     private String content;
 
     @ManyToOne
-    @JoinColumn(name = "user_id_creator", nullable = false)
+    @JoinColumn(name = "user_id_creator")
+    @NotNull(message = "User cannot be null")
     private User user;
 
-    @Column(name = "date", nullable = false)
+    @Column(name = "date")
+    @NotNull(message = "Date cannot be null")
     private Date date;
 
     @ManyToOne
-    @JoinColumn(name = "chat_id", nullable = false)
+    @JoinColumn(name = "chat_id")
+    @NotNull(message = "Chat cannot be null")
     private Chat chat;
 
     public Long getId() {

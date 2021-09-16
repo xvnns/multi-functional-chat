@@ -1,6 +1,7 @@
 package com.example.multifunctionalchat.domain;
 
 import javax.persistence.*;
+import javax.validation.constraints.NotNull;
 import java.util.Set;
 
 @Entity
@@ -9,10 +10,11 @@ public class Role {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    @Column(name = "id", nullable = false)
+    @Column(name = "id")
     private Long id;
 
     @Column(name = "name", nullable = false)
+    @NotNull(message = "Role name cannot be null")
     private RoleName name;
 
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "role")

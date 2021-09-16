@@ -1,6 +1,8 @@
 package com.example.multifunctionalchat.domain;
 
 import javax.persistence.*;
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
 import java.util.Set;
 
 @Entity
@@ -9,17 +11,19 @@ public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    @Column(name = "id", nullable = false)
+    @Column(name = "id")
     private Long id;
 
-    @Column(name = "login", nullable = false)
+    @Column(name = "login")
+    @NotBlank(message = "Login cannot be null")
     private String login;
 
     @ManyToOne
-    @JoinColumn(name = "role_id", nullable = false)
+    @JoinColumn(name = "role_id")
+    @NotNull(message = "Role cannot be null")
     private Role role;
 
-    @Column(name = "block", nullable = false)
+    @Column(name = "block")
     private boolean block;
 
     @ManyToMany
@@ -34,6 +38,10 @@ public class User {
 
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "creator")
     private Set<Chat> createdChats;
+
+    public User() {
+        block = false;
+    }
 
     public Long getId() {
         return id;
