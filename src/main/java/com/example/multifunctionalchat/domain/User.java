@@ -106,9 +106,6 @@ public class User {
                 ", login='" + login + '\'' +
                 ", role=" + role +
                 ", block=" + block +
-                ", chats=" + chats +
-                ", messages=" + messages +
-                ", createdChats=" + createdChats +
                 '}';
     }
 }

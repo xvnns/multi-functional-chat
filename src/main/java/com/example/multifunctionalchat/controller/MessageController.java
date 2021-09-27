@@ -1,71 +1,64 @@
 package com.example.multifunctionalchat.controller;
 
 import com.example.multifunctionalchat.domain.Message;
+import com.example.multifunctionalchat.exception.DeleteFromDatabaseException;
+import com.example.multifunctionalchat.service.ChatService;
 import com.example.multifunctionalchat.service.MessageService;
+import com.example.multifunctionalchat.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.*;
 
-import javax.validation.Valid;
+import java.util.Date;
 
 @Controller
 @RequestMapping("/message")
 public class MessageController {
 
     private final MessageService messageService;
+    private final ChatService chatService;
+    private final UserService userService;
 
     @Autowired
-    public MessageController(MessageService messageService) {
+    public MessageController(MessageService messageService, ChatService chatService, UserService userService) {
         this.messageService = messageService;
+        this.chatService = chatService;
+        this.userService = userService;
     }
 
-    @GetMapping
-    public String getMessageList(Model model) {
-        model.addAttribute("messages", messageService.getAll());
-        return null;
-    }
-
-    @GetMapping("/get/{id}")
-    public String getMessage(@PathVariable Long id, Model model) {
-        Message message = messageService.getById(id);
-        model.addAttribute("message", message);
-        return null;
-    }
-
-    @PostMapping("/add-message")
-    public String addMessage(@Valid Message message, BindingResult bindingResult) {
-        if(bindingResult.hasErrors()) {
-            return null;
+    @PostMapping("/add-message/{user_id}/{chat_id}")
+    public String addMessage(@ModelAttribute("message") Message message, @PathVariable("user_id") Long userId,
+                             @PathVariable("chat_id") Long chatId, BindingResult bindingResult, Model model) {
+        if (bindingResult.hasErrors()) {
+            model.addAttribute("error", "Ошибка, недопустимы данные");
+            return "room";
         }
-        messageService.add(message);
-        return null;
-    }
-
-    @GetMapping("/edit/{id}")
-    public String showUpdateForm(@PathVariable("id") long id, Model model) {
-        Message message = messageService.getById(id);
-        model.addAttribute("message", message);
-        return null;
-    }
-
-    @PostMapping("/update/{id}")
-    public String updateMessage(@PathVariable("id") long id, @Valid Message message, BindingResult bindingResult) {
-        if(bindingResult.hasErrors()) {
-            return null;
+        if (!userService.getById(userId).isBlock()) {
+            message.setContent(message.getContent());
+            message.setChat(chatService.getById(chatId));
+            message.setUser(userService.getById(userId));
+            message.setDate(new Date());
+            messageService.save(message);
         }
-        messageService.add(message);
-        return null;
+        else {
+            model.addAttribute("error", "Ошибка, невозможно отправить сообщение");
+        }
+        return "redirect:/chat?chatId=" + chatId + "&userId=" + userId;
     }
 
     @GetMapping("/delete/{id}")
-    public String deleteMessage(@PathVariable("id") long id) {
+    public String deleteMessage(@PathVariable("id") long id, @RequestParam Long userId, @RequestParam Long chatId,
+                                Model model) {
         Message message = messageService.getById(id);
-        messageService.delete(message);
-        return null;
+        if (userService.isModerator(userId) || userService.isAdmin(userId)) {
+            try {
+                messageService.delete(message);
+            } catch (DeleteFromDatabaseException e) {
+                model.addAttribute("error", e.getMessage());
+            }
+        }
+        return "redirect:/chat?chatId=" + chatId + "&userId=" + userId;
     }
 }

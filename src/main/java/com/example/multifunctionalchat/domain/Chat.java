@@ -3,7 +3,7 @@ package com.example.multifunctionalchat.domain;
 import javax.persistence.*;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
-import java.util.Set;
+import java.util.List;
 
 @Entity
 @Table(name = "chat")
@@ -24,10 +24,10 @@ public class Chat {
     private User creator;
 
     @ManyToMany(fetch = FetchType.LAZY, mappedBy = "chats")
-    private Set<User> users;
+    private List<User> users;
 
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "chat")
-    private Set<Message> messages;
+    private List<Message> messages;
 
     private boolean isPrivate;
 
@@ -59,19 +59,19 @@ public class Chat {
         this.creator = creator;
     }
 
-    public Set<User> getUsers() {
+    public List<User> getUsers() {
         return users;
     }
 
-    public void setUsers(Set<User> users) {
+    public void setUsers(List<User> users) {
         this.users = users;
     }
 
-    public Set<Message> getMessages() {
+    public List<Message> getMessages() {
         return messages;
     }
 
-    public void setMessages(Set<Message> messages) {
+    public void setMessages(List<Message> messages) {
         this.messages = messages;
     }
 
@@ -89,8 +89,6 @@ public class Chat {
                 "id=" + id +
                 ", name='" + name + '\'' +
                 ", creator=" + creator +
-                ", users=" + users +
-                ", messages=" + messages +
                 ", isPrivate=" + isPrivate +
                 '}';
     }

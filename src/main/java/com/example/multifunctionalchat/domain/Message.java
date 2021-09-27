@@ -23,14 +23,14 @@ public class Message {
     @NotNull(message = "User cannot be null")
     private User user;
 
-    @Column(name = "date")
-    @NotNull(message = "Date cannot be null")
-    private Date date;
-
     @ManyToOne
     @JoinColumn(name = "chat_id")
     @NotNull(message = "Chat cannot be null")
     private Chat chat;
+
+    @Column(name = "date")
+    @NotNull(message = "Date cannot be null")
+    private Date date;
 
     public Long getId() {
         return id;
@@ -56,14 +56,6 @@ public class Message {
         this.user = user;
     }
 
-    public Date getDate() {
-        return date;
-    }
-
-    public void setDate(Date date) {
-        this.date = date;
-    }
-
     public Chat getChat() {
         return chat;
     }
@@ -72,14 +64,22 @@ public class Message {
         this.chat = chat;
     }
 
+    public Date getDate() {
+        return date;
+    }
+
+    public void setDate(Date date) {
+        this.date = date;
+    }
+
     @Override
     public String toString() {
         return "Message{" +
                 "id=" + id +
                 ", content='" + content + '\'' +
                 ", user=" + user +
-                ", date=" + date +
                 ", chat=" + chat +
+                ", date=" + date +
                 '}';
     }
 }

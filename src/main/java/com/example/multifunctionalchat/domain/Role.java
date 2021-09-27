@@ -20,10 +20,6 @@ public class Role {
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "role")
     private Set<User> users;
 
-    private enum RoleName {
-        USER, ADMIN, MODERATOR
-    }
-
     public Long getId() {
         return id;
     }
@@ -53,7 +49,6 @@ public class Role {
         return "Role{" +
                 "id=" + id +
                 ", name=" + name +
-                ", users=" + users +
                 '}';
     }
 }

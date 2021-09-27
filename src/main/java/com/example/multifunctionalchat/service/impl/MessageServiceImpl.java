@@ -1,6 +1,7 @@
 package com.example.multifunctionalchat.service.impl;
 
 import com.example.multifunctionalchat.domain.Message;
+import com.example.multifunctionalchat.exception.DeleteFromDatabaseException;
 import com.example.multifunctionalchat.repository.MessageRepository;
 import com.example.multifunctionalchat.service.MessageService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,19 +21,24 @@ public class MessageServiceImpl implements MessageService {
     }
 
     @Transactional
-    public Message add(Message message) {
-        return messageRepository.saveAndFlush(message);
+    public boolean save(Message message) {
+        messageRepository.saveAndFlush(message);
+        return true;
     }
 
     @Transactional
-    public void delete(Message message) {
-        messageRepository.delete(message);
+    public void delete(Message message) throws DeleteFromDatabaseException {
+        if (messageRepository.existsById(message.getId())) {
+            messageRepository.delete(message);
+        }
+        else {
+            throw new DeleteFromDatabaseException("Сообщения нет в базе данных");
+        }
     }
 
     @Transactional(readOnly = true)
-    public Message getById(Long id) {
-        Message message = messageRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Invalid message Id:" + id));
-        return message;
+    public Message getById(Long id) throws IllegalArgumentException{
+        return messageRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Invalid message Id:" + id));
     }
 
     @Transactional(readOnly = true)

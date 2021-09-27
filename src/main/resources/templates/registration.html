@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Login</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, follow">
+</head>
+<body>
+    <form action="#" th:action="@{/sign-in}" th:object="${user}" method="post">
+        <label class="login-form-title">Account Login</label>
+        <div class="form-group" data-validate="Login is required">
+            <input class="form-control" type="text" th:field="*{login}" id="login" placeholder="Login">
+        </div>
+        <div class="container-form-btn">
+            <button class="login-form-btn">Sign in</button>
+        </div>
+        <div class="text-center">
+            <span class="txt">Create an account?</span>
+            <a href="#" class="txt-hov">Sign up</a>
+        </div>
+    </form>
+
+</body>
+</html>
