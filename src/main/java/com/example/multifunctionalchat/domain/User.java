@@ -1,22 +1,34 @@
 package com.example.multifunctionalchat.domain;
 
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.transaction.annotation.Transactional;
+
 import javax.persistence.*;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Set;
 
 @Entity
 @Table(name = "user")
-public class User {
+@Transactional
+public class User implements UserDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "id")
     private Long id;
 
-    @Column(name = "login")
+    @Column(name = "username")
     @NotBlank(message = "Login cannot be null")
-    private String login;
+    private String username;
+
+    @Column(name = "password")
+    @NotBlank(message = "Password cannot be null")
+    private String password;
 
     @ManyToOne
     @JoinColumn(name = "role_id")
@@ -39,10 +51,6 @@ public class User {
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "creator")
     private Set<Chat> createdChats;
 
-    public User() {
-        block = false;
-    }
-
     public Long getId() {
         return id;
     }
@@ -51,12 +59,8 @@ public class User {
         this.id = id;
     }
 
-    public String getLogin() {
-        return login;
-    }
-
-    public void setLogin(String login) {
-        this.login = login;
+    public void setUsername(String login) {
+        this.username = login;
     }
 
     public Role getRole() {
@@ -75,6 +79,7 @@ public class User {
         this.block = block;
     }
 
+    @Transactional
     public Set<Chat> getChats() {
         return chats;
     }
@@ -103,9 +108,48 @@ public class User {
     public String toString() {
         return "User{" +
                 "id=" + id +
-                ", login='" + login + '\'' +
+                ", login='" + username + '\'' +
                 ", role=" + role +
-                ", block=" + block +
+                ", blockUser=" + block +
                 '}';
+    }
+
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return Collections.<GrantedAuthority>singletonList(new SimpleGrantedAuthority(role.toString()));
+    }
+
+    @Override
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    @Override
+    public String getUsername() {
+        return username;
+    }
+
+    @Override
+    public boolean isAccountNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isAccountNonLocked() {
+        return true;
+    }
+
+    @Override
+    public boolean isCredentialsNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return true;
     }
 }

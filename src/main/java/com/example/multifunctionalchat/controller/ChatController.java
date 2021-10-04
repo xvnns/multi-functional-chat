@@ -2,19 +2,23 @@ package com.example.multifunctionalchat.controller;
 
 import com.example.multifunctionalchat.domain.Chat;
 import com.example.multifunctionalchat.domain.Message;
-import com.example.multifunctionalchat.domain.RoleName;
 import com.example.multifunctionalchat.domain.User;
 import com.example.multifunctionalchat.exception.AddingToTheDatabaseException;
+import com.example.multifunctionalchat.exception.ChatNotFoundException;
 import com.example.multifunctionalchat.exception.DeleteFromDatabaseException;
 import com.example.multifunctionalchat.service.ChatService;
 import com.example.multifunctionalchat.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.annotation.Secured;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+
+import static com.example.multifunctionalchat.domain.RoleName.USER;
 
 @Controller
 @RequestMapping("/chat")
@@ -30,15 +34,9 @@ public class ChatController {
     }
 
     @GetMapping("/chat-list")
-    public String chatList(@RequestParam Long userId, Model model) {
+    public String chatList(Authentication authentication, Model model) {
         try {
-            User user = userService.getById(userId);
-            if (userService.isAdmin(userId)) {
-                model.addAttribute("chatList", chatService.getAll());
-            }
-            else {
-                model.addAttribute("chatList", user.getChats());
-            }
+            model.addAttribute("chatList", chatService.getAll());
         }
         catch (IllegalArgumentException e) {
             model.addAttribute("error", e.getMessage());
@@ -47,19 +45,15 @@ public class ChatController {
         return "chat-list";
     }
 
-    @GetMapping("/get/{chat_id}")
-    public String getChat(@PathVariable("chat_id") Long chatId, @RequestParam Long userId, Model model) {
-        if (userService.isOwner(userId, chatId) || userService.isAdmin(userId) || userService.isModerator(userId)) {
-            model.addAttribute("messages", chatService.getById(chatId).getMessages());
-            model.addAttribute("message", new Message());
-            model.addAttribute("chat_id", chatId);
-            model.addAttribute("user_id", userId);
-            return "room";
+    @GetMapping("/load-chat/{chat_id}")
+    public String getChat(@PathVariable("chat_id") Long chatId, Model model) {
+        if (chatService.getById(chatId).getName().equals("yBot")) {
+            return "redirect:/chat-bot";
         }
-        else {
-            model.addAttribute("error", "Доступ к данному чату закрыт");
-            return "chat-list";
-        }
+        model.addAttribute("messages", chatService.getById(chatId).getMessages());
+        model.addAttribute("message", new Message());
+        model.addAttribute("chat_id", chatId);
+        return "room";
     }
 
     @PostMapping("/add-chat")
@@ -68,7 +62,7 @@ public class ChatController {
             model.addAttribute("error", "Ошибка, данные некорректны");
             return "chat-list";
         }
-        User user = userService.getById(userId);
+        User user = userService.getUserById(userId);
         if (!user.isBlock()) {
             try {
                 chatService.save(chat);
@@ -77,22 +71,22 @@ public class ChatController {
             }
         }
         else {
-            model.addAttribute("error", "Ошибка, невозможно добавить чат");
+            model.addAttribute("error", "Ошибка, невозможно создать чат");
         }
         return "chat-list";
     }
 
     @PostMapping("/add-user/{id}")
-    public String addUser(@Valid Chat chat, @PathVariable("id") Long addUserId, @RequestParam Long userId,
+    public String addUser(@Valid Chat chat, @PathVariable("id") Long addUserId, Authentication authentication,
                           BindingResult bindingResult, Model model) {
         if (bindingResult.hasErrors()) {
             model.addAttribute("error", "Ошибка, данные некорректны");
             return "chat-list";
         }
-        User user = userService.getById(userId);
+        User user = (User) authentication.getPrincipal();
         if (!user.isBlock()) {
             try {
-                chatService.addUser(chat, addUserId);
+                chatService.addUserById(chat, addUserId, user);
             } catch (AddingToTheDatabaseException e) {
                 model.addAttribute("error", e.getMessage());
             }
@@ -110,19 +104,17 @@ public class ChatController {
         return "update-chat";
     }
 
+    @Secured({"ADMIN", "USER"})
     @PostMapping("/rename/{id}")
-    public String updateChat(@PathVariable("id") long id, @RequestParam Long userId, BindingResult bindingResult,
+    public String updateChatName(@PathVariable("id") long id, Authentication authentication, BindingResult bindingResult,
                              Model model) {
         if (bindingResult.hasErrors()) {
             model.addAttribute("error", "Ошибка, данные некорректны");
             return "update-chat";
         }
-        if (userService.isAdmin(userId) || userService.isOwner(userId, id)) {
-            try {
-                chatService.update(chatService.getById(id));
-            } catch (AddingToTheDatabaseException e) {
-                model.addAttribute("error", e.getMessage());
-            }
+        User user = (User) authentication.getPrincipal();
+        if (user.getRole().getName() == USER && user.getChats().contains(chatService.getById(id))) {
+            // chatService.renameRoom();
         }
         else {
             model.addAttribute("error", "Ошибка, невозможно переименвать чат");
@@ -130,10 +122,16 @@ public class ChatController {
         return "update-chat";
     }
 
+    @Secured({"ADMIN", "USER"})
     @GetMapping("/delete/{id}")
-    public String deleteChat(@PathVariable("id") long id, @RequestParam Long userId, Model model) {
-        if (userService.isAdmin(userId) || userService.isOwner(userId, id)) {
-            chatService.delete(chatService.getById(id));
+    public String deleteChat(@PathVariable("id") long id, Authentication authentication, Model model) {
+        User user = (User) authentication.getPrincipal();
+        if (user.getRole().getName() == USER && user.getChats().contains(chatService.getById(id))) {
+            try {
+                chatService.removeRoom(chatService.getById(id).getName());
+            } catch (ChatNotFoundException e) {
+                e.printStackTrace();
+            }
         }
         else {
             model.addAttribute("error", "Невозможно удалить комнату, недостаточно прав");
@@ -141,13 +139,15 @@ public class ChatController {
         return "users";
     }
 
+    @Secured({"ADMIN", "USER"})
     @GetMapping("/delete-user/{chat-id}/{user-id}")
     public String deleteUserChat(@PathVariable("chat-id") long chatId, @PathVariable("user-id") long deleteUserId,
-                                 @RequestParam Long userId, Model model) {
-        if (userService.isAdmin(userId) || userService.isOwner(userId, chatId)) {
+                                 Authentication authentication, Model model) {
+        User user = (User) authentication.getPrincipal();
+        if (user.getRole().getName() == USER && user.getChats().contains(chatService.getById(chatId))) {
             try {
                 Chat chat = chatService.getById(chatId);
-                chatService.deleteUser(chat, userId);
+                chatService.deleteUserById(chat, user.getId());
             } catch (DeleteFromDatabaseException e) {
                 model.addAttribute("error", e.getMessage());
             }

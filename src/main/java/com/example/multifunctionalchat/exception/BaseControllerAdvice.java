@@ -38,11 +38,6 @@ public class BaseControllerAdvice {
          return response(HttpStatus.FORBIDDEN, ex, request);
     }
 
-    @ExceptionHandler(UserNotFoundException.class)
-    public Object userNotFoundException(UserNotFoundException ex, WebRequest request) {
-        return response(HttpStatus.FORBIDDEN, ex, request);
-    }
-
     private Object response(HttpStatus status, Exception ex, WebRequest request) {
         HttpHeaders httpHeaders = new HttpHeaders();
         httpHeaders.setContentType(MediaType.APPLICATION_JSON);

@@ -1,12 +1,14 @@
 package com.example.multifunctionalchat.domain;
 
+import org.springframework.security.core.GrantedAuthority;
+
 import javax.persistence.*;
 import javax.validation.constraints.NotNull;
 import java.util.Set;
 
 @Entity
 @Table(name = "role")
-public class Role {
+public class Role implements GrantedAuthority {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
@@ -15,10 +17,18 @@ public class Role {
 
     @Column(name = "name", nullable = false)
     @NotNull(message = "Role name cannot be null")
+    @Enumerated(value = EnumType.STRING)
     private RoleName name;
 
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "role")
     private Set<User> users;
+
+    public Role() {}
+
+    public Role(Long roleId, RoleName name) {
+        setId(roleId);
+        setName(name);
+    }
 
     public Long getId() {
         return id;
@@ -50,5 +60,10 @@ public class Role {
                 "id=" + id +
                 ", name=" + name +
                 '}';
+    }
+
+    @Override
+    public String getAuthority() {
+        return getName().toString();
     }
 }

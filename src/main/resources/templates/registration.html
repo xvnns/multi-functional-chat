@@ -10,7 +10,7 @@
     <form action="#" th:action="@{/sign-in}" th:object="${user}" method="post">
         <label class="login-form-title">Account Login</label>
         <div class="form-group" data-validate="Login is required">
-            <input class="form-control" type="text" th:field="*{login}" id="login" placeholder="Login">
+            <input class="form-control" type="text" th:field="*{username}" id="login" placeholder="Login">
         </div>
         <div class="container-form-btn">
             <button class="login-form-btn">Sign in</button>

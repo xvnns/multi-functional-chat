@@ -23,7 +23,7 @@ public class Chat {
     @NotNull(message = "User-creator cannot be null")
     private User creator;
 
-    @ManyToMany(fetch = FetchType.LAZY, mappedBy = "chats")
+    @ManyToMany(fetch = FetchType.EAGER, mappedBy = "chats")
     private List<User> users;
 
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "chat")

@@ -1,64 +1,55 @@
 package com.example.multifunctionalchat.controller;
 
 import com.example.multifunctionalchat.domain.Message;
+import com.example.multifunctionalchat.domain.User;
 import com.example.multifunctionalchat.exception.DeleteFromDatabaseException;
-import com.example.multifunctionalchat.service.ChatService;
 import com.example.multifunctionalchat.service.MessageService;
-import com.example.multifunctionalchat.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.annotation.Secured;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Date;
 
 @Controller
 @RequestMapping("/message")
 public class MessageController {
 
     private final MessageService messageService;
-    private final ChatService chatService;
-    private final UserService userService;
 
     @Autowired
-    public MessageController(MessageService messageService, ChatService chatService, UserService userService) {
+    public MessageController(MessageService messageService) {
         this.messageService = messageService;
-        this.chatService = chatService;
-        this.userService = userService;
     }
 
-    @PostMapping("/add-message/{user_id}/{chat_id}")
-    public String addMessage(@ModelAttribute("message") Message message, @PathVariable("user_id") Long userId,
-                             @PathVariable("chat_id") Long chatId, BindingResult bindingResult, Model model) {
+    @PostMapping("/add-message/{chat_id}")
+    public String addMessage(@ModelAttribute("message") Message message, @PathVariable("chat_id") Long chatId,
+                             BindingResult bindingResult, Authentication authentication, Model model) {
         if (bindingResult.hasErrors()) {
-            model.addAttribute("error", "Ошибка, недопустимы данные");
+            model.addAttribute("error", "Ошибка, сообщение не может быть отправлено");
             return "room";
         }
-        if (!userService.getById(userId).isBlock()) {
-            message.setContent(message.getContent());
-            message.setChat(chatService.getById(chatId));
-            message.setUser(userService.getById(userId));
-            message.setDate(new Date());
-            messageService.save(message);
+        User user = (User) authentication.getPrincipal();
+        if (!user.isBlock()) {
+            messageService.sendMessage(chatId, user, message.getContent());
         }
         else {
             model.addAttribute("error", "Ошибка, невозможно отправить сообщение");
         }
-        return "redirect:/chat?chatId=" + chatId + "&userId=" + userId;
+        return "redirect:/loadChat/" + chatId;
     }
 
+    @Secured({"ADMIN", "MODERATOR"})
     @GetMapping("/delete/{id}")
-    public String deleteMessage(@PathVariable("id") long id, @RequestParam Long userId, @RequestParam Long chatId,
+    public String deleteMessage(@PathVariable("id") long id, @RequestParam Long chatId,
                                 Model model) {
         Message message = messageService.getById(id);
-        if (userService.isModerator(userId) || userService.isAdmin(userId)) {
-            try {
-                messageService.delete(message);
-            } catch (DeleteFromDatabaseException e) {
-                model.addAttribute("error", e.getMessage());
-            }
+        try {
+            messageService.delete(message);
+        } catch (DeleteFromDatabaseException e) {
+            model.addAttribute("error", e.getMessage());
         }
-        return "redirect:/chat?chatId=" + chatId + "&userId=" + userId;
+        return "redirect:/chat?chatId=" + chatId;
     }
 }

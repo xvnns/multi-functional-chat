@@ -13,7 +13,7 @@
 
         </tr>
     </table>
-    <form action="#" th:action="@{'/message/add-message/' + ${chat_id}}" th:object="${message}" method="post">
+    <form action="#" th:action="@{'/chat-bot'}" th:object="${message}" method="post">
         <label>
             <textarea class="form-control" id="content" th:field="*{content}"></textarea>
         </label>
