@@ -17,7 +17,7 @@ public class YBotFindCommand {
             arity = 2,
             required = true
     )
-    private List<String> n;
+    private List<String> names;
 
     @Parameter(
             names = { "-v" },

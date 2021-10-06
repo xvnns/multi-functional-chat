@@ -2,6 +2,9 @@ package com.example.multifunctionalchat.controller;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.ParameterException;
+import com.example.multifunctionalchat.api.YouTubeApi;
+import com.example.multifunctionalchat.cli.bot.YBotFindCommand;
+import com.example.multifunctionalchat.cli.bot.YBotHelpCommand;
 import com.example.multifunctionalchat.cli.room.*;
 import com.example.multifunctionalchat.cli.splitter.InputCommandSplitter;
 import com.example.multifunctionalchat.cli.user.UserBanCommand;
@@ -25,6 +28,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 
+import java.io.IOException;
 import java.util.List;
 
 @Controller
@@ -55,8 +59,14 @@ public class BotController {
     }
 
     @PostMapping("/chat-bot")
-    public String readStr(Message message, Authentication authentication) {
+    public String readStr(Message message, Authentication authentication, Model model) {
         User user = (User) authentication.getPrincipal();
+        Chat chat = null;
+        try {
+            chat = chatService.getChatByName("yBot");
+        } catch (ChatNotFoundException e) {
+            e.printStackTrace();
+        }
         InputCommandSplitter inputCommandSplitter = new InputCommandSplitter();
         String[] command = inputCommandSplitter.split(message.getContent()).toArray(new String[0]);
         switch (command[0]) {
@@ -78,17 +88,51 @@ public class BotController {
                 break;
 
             case ("//yBot"):
+                switch (command[1]) {
+                    case ("find"):
+                        YBotFindCommand yBotFindCommand = new YBotFindCommand();
+                        jCommander = JCommander.newBuilder().addCommand(yBotFindCommand).build();
+                        jCommander.parse(command);
+                        YouTubeApi youTubeApi = new YouTubeApi();
+                        try {
+                            messageService.sendMessage(chat.getId(), (User) userService.loadUserByUsername("yBot"),
+                                            youTubeApi.getUrl(yBotFindCommand.getNames().get(0), yBotFindCommand
+                                                    .getNames().get(1)));
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                        if (yBotFindCommand.isLikesNumber()) {
+                            try {
+                                String m = youTubeApi.likeCount(yBotFindCommand.getNames().get(0), yBotFindCommand
+                                        .getNames().get(1));
+                                messageService.sendMessage(chat.getId(), (User) userService
+                                        .loadUserByUsername("yBot"), m);
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                        if (yBotFindCommand.isViewsNumber()) {
+                            try {
+                                String botMessage = youTubeApi.viewCount(yBotFindCommand.getNames().get(0), yBotFindCommand
+                                        .getNames().get(1));
+                                messageService.sendMessage(chat.getId(), (User) userService
+                                                .loadUserByUsername("yBot"), botMessage);
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                        break;
+                    case ("help") :
+                        YBotHelpCommand yBotHelpCommand = new YBotHelpCommand();
+                        jCommander = JCommander.newBuilder().addCommand(yBotHelpCommand).build();
+                        jCommander.parse(command);
+                        messageService.sendMessage(chat.getId(), (User) userService.loadUserByUsername("yBot"),
+                                yBotHelpCommand.getHelp());
+                        break;
+                }
                 break;
         }
-
-        try {
-            Chat chat = chatService.getChatByName("yBot");
-            messageService.sendMessage(chat.getId(), (User) userService.loadUserByUsername("yBot"),
-                    "Команда успешно выпонена");
-            messageService.sendMessage(chat.getId(), user, message.getContent());
-        } catch (ChatNotFoundException e) {
-            e.printStackTrace();
-        }
+        messageService.sendMessage(chat.getId(), user, message.getContent());
         return "redirect:/chat-bot";
     }
 
@@ -98,9 +142,7 @@ public class BotController {
         switch (command[1]) {
             case ("rename"):
                 UserRenameCommand userRenameCommand = new UserRenameCommand();
-                jCommander = JCommander.newBuilder()
-                        .addCommand(userRenameCommand)
-                        .build();
+                jCommander = JCommander.newBuilder().addCommand(userRenameCommand).build();
                 jCommander.parse(command);
                 login = userRenameCommand.getUserLogin();
                 newLogin = userRenameCommand.getNewUserLogin();
@@ -108,18 +150,14 @@ public class BotController {
                 break;
             case ("ban"):
                 UserBanCommand userBanCommand = new UserBanCommand();
-                jCommander = JCommander.newBuilder()
-                        .addCommand(userBanCommand)
-                        .build();
+                jCommander = JCommander.newBuilder().addCommand(userBanCommand).build();
                 jCommander.parse(command);
                 login = userBanCommand.getLogin();
                 userService.blockUser(login);
                 break;
             case ("moderator"):
                 UserModeratorCommand userModeratorCommand = new UserModeratorCommand();
-                jCommander = JCommander.newBuilder()
-                        .addCommand(userModeratorCommand)
-                        .build();
+                jCommander = JCommander.newBuilder().addCommand(userModeratorCommand).build();
                 jCommander.parse(command);
                 login = userModeratorCommand.getUserLogin();
                 if (userModeratorCommand.isModerator()) {
@@ -137,27 +175,21 @@ public class BotController {
         switch (command[1]) {
             case ("create"):
                 RoomCreateCommand roomCreateCommand = new RoomCreateCommand();
-                jCommander = JCommander.newBuilder()
-                        .addCommand(roomCreateCommand)
-                        .build();
+                jCommander = JCommander.newBuilder().addCommand(roomCreateCommand).build();
                 jCommander.parse(command);
                 room = roomCreateCommand.getRoomName();
                 chatService.createPrivateRoom(room, user);
                 break;
             case ("remove"):
                 RoomRemoveCommand roomRemoveCommand = new RoomRemoveCommand();
-                jCommander = JCommander.newBuilder()
-                        .addCommand(roomRemoveCommand)
-                        .build();
+                jCommander = JCommander.newBuilder().addCommand(roomRemoveCommand).build();
                 jCommander.parse(command);
                 room = roomRemoveCommand.getRoomName();
                 chatService.removeRoom(room);
                 break;
             case ("rename"):
                 RoomRenameCommand roomRenameCommand = new RoomRenameCommand();
-                jCommander = JCommander.newBuilder()
-                        .addCommand(roomRenameCommand)
-                        .build();
+                jCommander = JCommander.newBuilder().addCommand(roomRenameCommand).build();
                 jCommander.parse(command);
                 room = roomRenameCommand.getRoomName();
                 String newName = roomRenameCommand.getNewRoomName();
@@ -165,9 +197,7 @@ public class BotController {
                 break;
             case ("connect"):
                 RoomConnectCommand roomConnectCommand = new RoomConnectCommand();
-                jCommander = JCommander.newBuilder()
-                        .addCommand(roomConnectCommand)
-                        .build();
+                jCommander = JCommander.newBuilder().addCommand(roomConnectCommand).build();
                 jCommander.parse(command);
                 room = roomConnectCommand.getRoomName();
                 userLogin = roomConnectCommand.getUserLogin();
@@ -175,9 +205,7 @@ public class BotController {
                 break;
             case ("disconnect"):
                 RoomDisconnectCommand roomDisconnectCommand = new RoomDisconnectCommand();
-                jCommander = JCommander.newBuilder()
-                        .addCommand(roomDisconnectCommand)
-                        .build();
+                jCommander = JCommander.newBuilder().addCommand(roomDisconnectCommand).build();
                 jCommander.parse(command);
                 room = roomDisconnectCommand.getRoomName();
                 if (roomDisconnectCommand.getUserLogin()!= null) {

@@ -10,7 +10,8 @@ public class YBotHelpCommand {
 
     @Parameter(
             names = { "help" },
-            order = 2
+            order = 1,
+            required = true
     )
     private boolean printHelpMessage;
 
