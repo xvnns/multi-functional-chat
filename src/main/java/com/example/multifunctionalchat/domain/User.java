@@ -1,20 +1,21 @@
 package com.example.multifunctionalchat.domain;
 
+import lombok.Data;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.*;
 import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Pattern;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
 
+@Data
 @Entity
 @Table(name = "user")
-@Transactional
 public class User implements UserDetails {
 
     @Id
@@ -23,7 +24,7 @@ public class User implements UserDetails {
     private Long id;
 
     @Column(name = "username")
-    @NotBlank(message = "Login cannot be null")
+    @Pattern(regexp = "\\w+")
     private String username;
 
     @Column(name = "password")
@@ -32,14 +33,14 @@ public class User implements UserDetails {
 
     @ManyToOne
     @JoinColumn(name = "role_id")
-    @NotNull(message = "Role cannot be null")
+
     private Role role;
 
     @Column(name = "block")
     private boolean block;
 
     @ManyToMany
-    @JoinTable(name = "chat_users",
+    @JoinTable(name = "chat_user",
             joinColumns = @JoinColumn(name = "user_id", referencedColumnName = "id"),
             inverseJoinColumns = @JoinColumn(name = "chat_id", referencedColumnName = "id")
     )
@@ -51,60 +52,7 @@ public class User implements UserDetails {
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "creator")
     private Set<Chat> createdChats;
 
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public void setUsername(String login) {
-        this.username = login;
-    }
-
-    public Role getRole() {
-        return role;
-    }
-
-    public void setRole(Role role) {
-        this.role = role;
-    }
-
-    public boolean isBlock() {
-        return block;
-    }
-
-    public void setBlock(boolean block) {
-        this.block = block;
-    }
-
-    @Transactional
-    public Set<Chat> getChats() {
-        return chats;
-    }
-
-    public void setChats(Set<Chat> chats) {
-        this.chats = chats;
-    }
-
-    public Set<Message> getMessages() {
-        return messages;
-    }
-
-    public void setMessages(Set<Message> messages) {
-        this.messages = messages;
-    }
-
-    public Set<Chat> getCreatedChats() {
-        return createdChats;
-    }
-
-    public void setCreatedChats(Set<Chat> createdChats) {
-        this.createdChats = createdChats;
-    }
-
-    @Override
+   @Override
     public String toString() {
         return "User{" +
                 "id=" + id +
@@ -122,10 +70,6 @@ public class User implements UserDetails {
     @Override
     public String getPassword() {
         return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
     }
 
     @Override

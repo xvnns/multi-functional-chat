@@ -1,18 +1,21 @@
 package com.example.multifunctionalchat.controller;
 
 import com.example.multifunctionalchat.domain.User;
+import com.example.multifunctionalchat.exception.AddingToTheDatabaseException;
 import com.example.multifunctionalchat.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.validation.Validator;
+import org.springframework.web.bind.WebDataBinder;
+import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.validation.ConstraintViolationException;
 import javax.validation.Valid;
+
 
 @Controller
 public class RegistrationController {
@@ -26,18 +29,24 @@ public class RegistrationController {
     }
 
     @PostMapping("/registration")
-    public String getUser(@ModelAttribute("userForm") @Valid User user, BindingResult bindingResult,
-                          @RequestParam("confirmedPassword") String confirmedPassword, Model model) {
-        if (!user.getPassword().equals(confirmedPassword)){
-            model.addAttribute("passwordError", "Пароли не совпадают");
+    public String getUser(@Valid User user, BindingResult bindingResult,
+                          @RequestParam("confirmedPassword") String confirmedPassword, HttpServletRequest request,
+                          Model model) {
+
+        if (bindingResult.hasErrors()) {
             return "registration";
         }
+
+       if (!user.getPassword().equals(confirmedPassword)){
+            model.addAttribute("error", "Пароли не совпадают");
+            return "registration";
+        } /**/
         try {
-            userService.loadUserByUsername(user.getUsername());
-        } catch (UsernameNotFoundException e) {
+            userService.saveUser(user);
+        } catch (AddingToTheDatabaseException | ConstraintViolationException e) {
             model.addAttribute("error", e.getMessage());
             return "registration";
         }
-        return "redirect:/";
+        return "redirect:/login";
     }
 }

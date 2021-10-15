@@ -6,7 +6,7 @@ import com.beust.jcommander.ParameterException;
 import java.util.regex.Pattern;
 
 public class InputRoomNameValidator implements IParameterValidator {
-    public static final String REGEX = "\\{(\\w+\\s*)*\\}";
+    public static final String REGEX = "^\\{(\\w+\\s*)*\\}$";
     @Override
     public void validate(String name, String value) throws ParameterException {
         if (!isValidName(value)) {

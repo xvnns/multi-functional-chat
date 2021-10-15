@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+		http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-2.0.xsd">
+
+
+    <changeSet author="xvnns" id="tbl_message" runOnChange="true">
+        <preConditions onFail="MARK_RAN">
+            <not> <tableExists tableName="message" /> </not>
+        </preConditions>
+        <createTable tableName="message">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints nullable="false" primaryKey="true"/>
+            </column>
+            <column name="content" type="varchar(200)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="chat_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="user_id_creator" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet author="xvnns" id="fk_message_1" runOnChange="true">
+        <preConditions onFail="MARK_RAN">
+            <not> <foreignKeyConstraintExists foreignKeyName="fk_message_1" /> </not>
+        </preConditions>
+        <addForeignKeyConstraint constraintName="fk_message_1"
+                                 baseTableName="message"
+                                 baseColumnNames="chat_id"
+                                 referencedTableName="chat"
+                                 referencedColumnNames="id"/>
+    </changeSet>
+    <changeSet author="xvnns" id="fk_message_2" runOnChange="true">
+        <preConditions onFail="MARK_RAN">
+            <not> <foreignKeyConstraintExists foreignKeyName="fk_message_2" /> </not>
+        </preConditions>
+        <addForeignKeyConstraint constraintName="fk_message_2"
+                                 baseTableName="message"
+                                 baseColumnNames="user_id_creator"
+                                 referencedTableName="user"
+                                 referencedColumnNames="id"/>
+    </changeSet>
+</databaseChangeLog>

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+		http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-2.0.xsd">
+
+
+    <changeSet author="xvnns" id="tbl_chat_user" runOnChange="true">
+        <preConditions onFail="MARK_RAN">
+            <not> <tableExists tableName="chat_user" /> </not>
+        </preConditions>
+        <createTable tableName="chat_user">
+            <column name="user_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="chat_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet author="xvnns" id="fk_chat_user_1" runOnChange="true">
+        <preConditions onFail="MARK_RAN">
+            <not> <foreignKeyConstraintExists foreignKeyName="fk_chat_user_1" /> </not>
+        </preConditions>
+        <addForeignKeyConstraint constraintName="fk_chat_user_1"
+                                 baseTableName="chat_user"
+                                 baseColumnNames="user_id"
+                                 referencedTableName="user"
+                                 referencedColumnNames="id"/>
+    </changeSet>
+    <changeSet author="xvnns" id="fk_chat_user_2" runOnChange="true">
+        <preConditions onFail="MARK_RAN">
+            <not> <foreignKeyConstraintExists foreignKeyName="fk_chat_user_2" /> </not>
+        </preConditions>
+        <addForeignKeyConstraint constraintName="fk_chat_user_2"
+                                 baseTableName="chat_user"
+                                 baseColumnNames="chat_id"
+                                 referencedTableName="chat"
+                                 referencedColumnNames="id"/>
+    </changeSet>
+</databaseChangeLog>

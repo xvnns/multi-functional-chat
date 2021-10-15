@@ -6,7 +6,6 @@ import com.example.multifunctionalchat.exception.AddingToTheDatabaseException;
 import com.example.multifunctionalchat.exception.ChatNotFoundException;
 import com.example.multifunctionalchat.exception.DeleteFromDatabaseException;
 import com.example.multifunctionalchat.repository.ChatRepository;
-import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
@@ -45,7 +44,7 @@ public class ChatService {
     }
 
     @Transactional(readOnly = true)
-    public Chat getById(Long id) throws IllegalArgumentException{
+    public Chat getChatById(Long id) throws IllegalArgumentException{
         return chatRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Invalid chat Id:" + id));
     }
 

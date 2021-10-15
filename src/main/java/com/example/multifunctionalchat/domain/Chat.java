@@ -1,8 +1,12 @@
 package com.example.multifunctionalchat.domain;
 
+import org.hibernate.annotations.Fetch;
+import org.hibernate.annotations.FetchMode;
+
 import javax.persistence.*;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Pattern;
 import java.util.List;
 
 @Entity
@@ -16,6 +20,7 @@ public class Chat {
 
     @Column(name = "name")
     @NotBlank(message = "Name cannot be null")
+    @Pattern(regexp = "\\w+\\s+")
     private String name;
 
     @ManyToOne
@@ -23,7 +28,8 @@ public class Chat {
     @NotNull(message = "User-creator cannot be null")
     private User creator;
 
-    @ManyToMany(fetch = FetchType.EAGER, mappedBy = "chats")
+    @ManyToMany( mappedBy = "chats")
+    @Fetch(FetchMode.JOIN)
     private List<User> users;
 
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "chat")

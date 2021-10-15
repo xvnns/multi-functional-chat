@@ -57,31 +57,6 @@ public class YouTubeApi {
                 .build();
     }
 
-    public SearchResult init(String channelName, String videoName) {
-        try {
-            YouTube.Search.List requestChannel = youtubeService.search().list(Collections.singletonList("snippet"));
-            SearchListResponse responseChannel = requestChannel.setQ(channelName)
-                    .setType(Collections.singletonList("channel"))
-                    .setMaxResults(5L)
-                    .execute();
-            List<SearchResult> channelResult = responseChannel.getItems();
-
-            String channelId = channelResult.get(0).getSnippet().getChannelId();
-
-            YouTube.Search.List request = youtubeService.search().list(Collections.singletonList("snippet"))
-                    .setChannelId(channelId);
-            SearchListResponse response = request.setQ(videoName)
-                    .setType(Collections.singletonList("video"))
-                    .setMaxResults(5L)
-                    .execute();
-            List<SearchResult> results = response.getItems();
-            return results.get(0);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        return null;
-    }
 
     public String likeCount(String channelName, String videoName) throws IOException {
         YouTube.Videos.List request1 = youtubeService.videos().list(Collections.singletonList("statistics"))
@@ -100,6 +75,48 @@ public class YouTubeApi {
     }
 
     public String getUrl(String channelName, String videoName) throws IOException {
-        return "URL: " + init(channelName, videoName).getId().getVideoId();
+        YouTube.Search.List requestChannel = youtubeService.search().list(Collections.singletonList("snippet"));
+        SearchListResponse responseChannel = requestChannel.setQ(channelName)
+                .setType(Collections.singletonList("channel"))
+                .setMaxResults(5L)
+                .execute();
+        List<SearchResult> channelResult = responseChannel.getItems();
+
+        String channelId = channelResult.get(0).getSnippet().getChannelId();
+
+        YouTube.Search.List request = youtubeService.search().list(Collections.singletonList("snippet"))
+                .setChannelId(channelId);
+        SearchListResponse response = request.setQ(videoName)
+                .setType(Collections.singletonList("video"))
+                .setMaxResults(5L)
+                .execute();
+        SearchResult result = response.getItems().get(0);
+        return "URL: https://www.youtube.com/watch?v=" + result.getId().getVideoId();
     }
+
+    public String channelInfo(String channelName) throws IOException {
+        YouTube.Search.List requestChannel = youtubeService.search().list(Collections.singletonList("snippet"));
+        SearchListResponse responseChannel = requestChannel.setQ(channelName)
+                .setType(Collections.singletonList("channel"))
+                .setMaxResults(5L)
+                .execute();
+        SearchResult channelResult = responseChannel.getItems().get(0);
+        String channelId = channelResult.getSnippet().getChannelId();
+        StringBuilder builder = new StringBuilder();
+        builder.append(channelResult.getSnippet().getChannelTitle());
+        YouTube.Search.List request = youtubeService.search().list(Collections.singletonList("snippet"))
+                .setChannelId(channelId);
+        SearchListResponse response = request//.setQ(videoName)
+                .setType(Collections.singletonList("video"))
+                .setMaxResults(5L)
+                .setOrder("date")
+                .execute();
+        List<SearchResult> results = response.getItems();
+        for (SearchResult res: results) {
+            builder.append(res.getId().getVideoId());
+        }
+        return builder.toString();
+    }
+
+
 }

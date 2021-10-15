@@ -17,6 +17,9 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.validation.*;
+import java.util.Set;
+
 import java.util.List;
 
 import static com.example.multifunctionalchat.domain.RoleName.USER;
@@ -32,8 +35,26 @@ public class UserService implements UserDetailsService {
     @Autowired
     private BCryptPasswordEncoder bCryptPasswordEncoder;
 
+    public void userValidate(User user) throws ConstraintViolationException {
+
+        Validator validator = Validation.buildDefaultValidatorFactory()
+                .getValidator();
+
+            Set<ConstraintViolation<User>> violations = validator.validate(user);
+
+        if (!violations.isEmpty()) {
+            StringBuilder sb = new StringBuilder();
+            for (ConstraintViolation<User> constraintViolation : violations) {
+                sb.append(constraintViolation.getMessage());
+            }
+            throw new ConstraintViolationException("Error occurred: " + sb, violations);
+        }
+    }/**/
+
+
     @Transactional
     public void saveUser(User user) throws AddingToTheDatabaseException {
+        // userValidate(user);
         if (userRepository.existsByUsername(user.getUsername())) {
             throw new AddingToTheDatabaseException("Пользователь с таким именем существует в базе данных");
         }
@@ -106,5 +127,9 @@ public class UserService implements UserDetailsService {
         User user = (User) loadUserByUsername(username);
         user.setRole(roleRepository.findByName(role));
         userRepository.saveAndFlush(user);
+    }
+
+    public boolean existsUserByUsername(User user) {
+        return userRepository.existsByUsername(user.getUsername());
     }
 }
