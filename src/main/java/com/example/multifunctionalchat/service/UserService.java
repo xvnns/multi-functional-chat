@@ -1,14 +1,13 @@
 package com.example.multifunctionalchat.service;
 
 import com.example.multifunctionalchat.domain.Role;
-import com.example.multifunctionalchat.domain.RoleName;
 import com.example.multifunctionalchat.domain.User;
 import com.example.multifunctionalchat.exception.AddingToTheDatabaseException;
 import com.example.multifunctionalchat.exception.DeleteFromDatabaseException;
 import com.example.multifunctionalchat.repository.RoleRepository;
 import com.example.multifunctionalchat.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.access.annotation.Secured;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -17,12 +16,9 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.validation.*;
-import java.util.Set;
-
 import java.util.List;
 
-import static com.example.multifunctionalchat.domain.RoleName.USER;
+import static com.example.multifunctionalchat.domain.RoleName.*;
 
 @Service
 public class UserService implements UserDetailsService {
@@ -34,23 +30,6 @@ public class UserService implements UserDetailsService {
 
     @Autowired
     private BCryptPasswordEncoder bCryptPasswordEncoder;
-
-    public void userValidate(User user) throws ConstraintViolationException {
-
-        Validator validator = Validation.buildDefaultValidatorFactory()
-                .getValidator();
-
-            Set<ConstraintViolation<User>> violations = validator.validate(user);
-
-        if (!violations.isEmpty()) {
-            StringBuilder sb = new StringBuilder();
-            for (ConstraintViolation<User> constraintViolation : violations) {
-                sb.append(constraintViolation.getMessage());
-            }
-            throw new ConstraintViolationException("Error occurred: " + sb, violations);
-        }
-    }/**/
-
 
     @Transactional
     public void saveUser(User user) throws AddingToTheDatabaseException {
@@ -65,8 +44,8 @@ public class UserService implements UserDetailsService {
         }
     }
 
+    @PreAuthorize("hasAuthority('ADMIN')")
     @Transactional
-    @Secured("ADMIN")
     public void deleteUser(Long userId) throws DeleteFromDatabaseException {
         if (userRepository.findById(userId).isPresent()) {
             userRepository.deleteById(userId);
@@ -84,24 +63,25 @@ public class UserService implements UserDetailsService {
         return userRepository.findAll();
     }
 
+    @PreAuthorize("hasAuthority('ADMIN') or hasAuthority('MODERATOR')")
     @Transactional
-    @Secured({"ADMIN", "MODERATOR"})
     public void blockUser(String username) {
         User user = (User) loadUserByUsername(username);
         user.setBlock(true);
         userRepository.saveAndFlush(user);
     }
 
+
+    @PreAuthorize("hasAuthority('ADMIN') or hasAuthority('MODERATOR')")
     @Transactional
-    @Secured({"ADMIN", "MODERATOR"})
     public void unblockUser(String username) {
         User user = (User) loadUserByUsername(username);
         user.setBlock(true);
         userRepository.saveAndFlush(user);
     }
 
+    @PreAuthorize("hasAuthority('ADMIN') or hasAuthority('USER')")
     @Transactional
-    @Secured({"ADMIN", "USER"})
     public void updateLogin(String userLogin, String newLogin, User registeredUser) throws AddingToTheDatabaseException {
         if (registeredUser.getRole().getName() == USER && registeredUser.getUsername().equals(userLogin)) {
             User user = (User) loadUserByUsername(userLogin);
@@ -122,14 +102,21 @@ public class UserService implements UserDetailsService {
         return user;
     }
 
-    @Secured("ADMIN")
-    public void updateUserRole(String username, RoleName role) {
-        User user = (User) loadUserByUsername(username);
-        user.setRole(roleRepository.findByName(role));
-        userRepository.saveAndFlush(user);
+    @PreAuthorize("hasAuthority('ADMIN')")
+    @Transactional
+    public void makeModerator(User user) {
+        if (user.getRole().getName() == USER) {
+            user.setRole(roleRepository.findByName(MODERATOR));
+            userRepository.saveAndFlush(user);
+        }
     }
 
-    public boolean existsUserByUsername(User user) {
-        return userRepository.existsByUsername(user.getUsername());
+    @PreAuthorize("hasAuthority('ADMIN')")
+    @Transactional
+    public void makeUser(User user) {
+        if (user.getRole().getName() == MODERATOR) {
+            user.setRole(roleRepository.findByName(USER));
+            userRepository.saveAndFlush(user);
+        }
     }
 }

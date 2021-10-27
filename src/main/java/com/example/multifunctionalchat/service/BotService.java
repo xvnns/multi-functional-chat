@@ -161,9 +161,9 @@ public class BotService {
                 jCommander.parse(command);
                 login = userModeratorCommand.getUserLogin();
                 if (userModeratorCommand.isModerator()) {
-                    userService.updateUserRole(login, RoleName.MODERATOR);
+                   // userService.updateUserRole(login, RoleName.MODERATOR);
                 } else {
-                    userService.updateUserRole(login, RoleName.USER);
+                   // userService.updateUserRole(login, RoleName.USER);
                 }
                 break;
         }

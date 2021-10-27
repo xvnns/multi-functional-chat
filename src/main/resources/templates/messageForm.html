@@ -14,7 +14,7 @@
     </div>
     <div class="puk" >
         <dl th:each="message : ${chat.messages}" class="dl-horizontal">
-            <dt id="name" th:text="${message.user.username}"></dt>
+            <dt th:text="${message.user.username}"></dt>
             <dd th:text="${message.content}"></dd>
         </dl>
         <dl id="messageArea">
@@ -22,8 +22,7 @@
         </dl>
     </div>
 
-    <form id="messageForm" class="col-sm-11" th:object="${message}" method="post">
-
+    <form id="messageForm" class="col-sm-11" th:object="${message}" >
         <label>
             <textarea id="message" class="form-control" th:field="*{content}" style="height: 88px;"></textarea>
         </label>

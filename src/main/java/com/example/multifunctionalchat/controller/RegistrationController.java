@@ -40,7 +40,7 @@ public class RegistrationController {
        if (!user.getPassword().equals(confirmedPassword)){
             model.addAttribute("error", "Пароли не совпадают");
             return "registration";
-        } /**/
+        }
         try {
             userService.saveUser(user);
         } catch (AddingToTheDatabaseException | ConstraintViolationException e) {

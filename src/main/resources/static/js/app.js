@@ -6,6 +6,8 @@ var messageArea = document.querySelector('#messageArea');
 var connectingElement = document.querySelector('.connecting');
 var chatName = document.querySelector('#chatName');
 
+var chatForm =  document.querySelector('#myTabs')
+
 var stompClient = null;
 var username = null;
 
@@ -22,34 +24,30 @@ function onError(error) {
 }
 
 function sendMessage(event) {
+    var thisChatName = document.querySelector('#chatName').textContent.trim();
     if (!stompClient) {
-
-        //TypeError: Cannot read properties of null (reading 'textContent')
-        username=document.querySelector('#name').textContent.trim();
+        username = document.querySelector('#name').textContent.trim();
         if (username) {
-
             var socket = new SockJS('/ws');
             stompClient = Stomp.over(socket);
-
             stompClient.connect({}, onConnected, onError);
         }
         event.preventDefault();
     }
-    else {   }
-        var messageContent = messageInput.value.trim();
 
-        if(messageContent && stompClient) {
-            var chatMessage = {
-                author: username,
-                text: messageInput.value,
-                room: chatName.textContent.trim(),
-            };
+    var messageContent = messageInput.value.trim();
 
-            stompClient.send("/app/chat.sendMessage", {}, JSON.stringify(chatMessage));
-            messageInput.value = '';
-        }
-        event.preventDefault();
+    if (messageContent && stompClient) {
+        var chatMessage = {
+            author: username,
+            text: messageInput.value,
+            room: chatName.textContent.trim(),
+        };
 
+        stompClient.send("/app/chat.sendMessage", {}, JSON.stringify(chatMessage));
+        messageInput.value = '';
+    }
+    event.preventDefault();
 }
 
 
@@ -72,5 +70,11 @@ function onMessageReceived(payload) {
     messageArea.appendChild(messageElement);
 }
 
+function func(event) {
+    stompClient.disconnect();
+    stompClient = false;
+}
+
 messageForm.addEventListener('submit', sendMessage, true);
+chatForm.addEventListener('click', func, true)
 //document.querySelector('#send').click();

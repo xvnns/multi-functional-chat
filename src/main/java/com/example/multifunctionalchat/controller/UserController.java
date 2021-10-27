@@ -1,37 +1,32 @@
 package com.example.multifunctionalchat.controller;
 
-import com.example.multifunctionalchat.domain.Chat;
-import com.example.multifunctionalchat.domain.RoleName;
 import com.example.multifunctionalchat.domain.User;
 import com.example.multifunctionalchat.exception.AddingToTheDatabaseException;
 import com.example.multifunctionalchat.exception.DeleteFromDatabaseException;
-import com.example.multifunctionalchat.service.ChatService;
 import com.example.multifunctionalchat.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.access.annotation.Secured;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
-
-import javax.validation.Valid;
 
 @Controller
 @RequestMapping("/users")
 public class UserController {
 
     private final UserService userService;
-    private final ChatService chatService;
 
     @Autowired
-    public UserController(UserService userService, ChatService chatService) {
+    public UserController(UserService userService) {
         this.userService = userService;
-        this.chatService = chatService;
     }
 
     @GetMapping
-    public String getUserList(Model model) {
+    public String getUserList(@AuthenticationPrincipal User currentUser, Model model) {
+        model.addAttribute("currentUser", currentUser);
         model.addAttribute("users", userService.getAll());
         return "users";
     }
@@ -56,24 +51,23 @@ public class UserController {
         return "users";
     }
 
-    @GetMapping("/moderator/{id}")
-    public String showUpdateForm(@PathVariable("id") Long id, Model model) {
+    @PreAuthorize("hasAuthority('ADMIN')")
+    @GetMapping("/make-moderator/{id}")
+    public String makeModerator(@PathVariable("id") Long id) {
         User user = userService.getUserById(id);
-        model.addAttribute("user", user);
-        return "edit-role";
+        userService.makeModerator(user);
+        return "redirect:/users";
     }
 
-    @Secured("ADMIN")
-    @PostMapping("/update-role")
-    public String updateRole(@Valid User user, BindingResult bindingResult, Model model) {
-        if (bindingResult.hasErrors()) {
-            model.addAttribute("error", "Ошибка, данные некорректны");
-        }
-        //userService.updateUserRole(user);
-        model.addAttribute("error", "Невозможно назначить/удалить модератора");
-        return "users";
+    @PreAuthorize("hasAuthority('ADMIN')")
+    @GetMapping("/make-user/{id}")
+    public String makeUser(@PathVariable("id") Long id) {
+        User user = userService.getUserById(id);
+        userService.makeUser(user);
+        return "redirect:/users";
     }
 
+    @PreAuthorize("hasAuthority('ADMIN')")
     @GetMapping("/rename/{id}")
     public String renameForm(@PathVariable("id") Long id, Model model) {
         User user = userService.getUserById(id);
@@ -81,22 +75,7 @@ public class UserController {
         return "rename";
     }
 
-    @Secured("ADMIN")
-    @PostMapping("/update-name")
-    public String updateName(@Valid User user,Authentication authentication, BindingResult bindingResult, Model model) {
-        if (bindingResult.hasErrors()) {
-            model.addAttribute("error", "Ошибка, данные некорректны");
-            return "users";
-        }
-        User regUser = (User) authentication.getPrincipal();
-        if (user.getUsername().equals(regUser.getUsername())) {
-            //userService.updateLogin(user);
-        }
-        else model.addAttribute("error", "Невозможно переименовать пользователя");
-        return "users";
-    }
-
-    @Secured("ADMIN")
+    @PreAuthorize("hasAuthority('ADMIN')")
     @GetMapping("/delete/{id}")
     public String deleteUser(@PathVariable("id") long userId, Model model) {
         try {
@@ -104,22 +83,22 @@ public class UserController {
         } catch (DeleteFromDatabaseException e) {
             model.addAttribute("error", e.getMessage());
         }
-        return "users";
+        return "redirect:/users";
     }
 
-    @Secured({"ADMIN", "MODERATOR"})
+    @PreAuthorize("hasAuthority('ADMIN') or hasAuthority('MODERATOR')")
     @GetMapping("/block/{id}")
-    public String blockUser(@PathVariable("id") long id, Authentication authentication, Model model) {
+    public String blockUser(@PathVariable("id") long id) {
         User user = userService.getUserById(id);
         userService.blockUser(user.getUsername());
-        return "users";
+        return "redirect:/users";
     }
 
-    @Secured({"ADMIN", "MODERATOR"})
+    @PreAuthorize("hasAuthority('ADMIN') or hasAuthority('MODERATOR')")
     @GetMapping("/unblock/{id}")
-    public String unblockUser(@PathVariable("id") long id, Model model) {
+    public String unblockUser(@PathVariable("id") long id) {
         User user = userService.getUserById(id);
         userService.unblockUser(user.getUsername());
-        return "users";
+        return "redirect:/users";
     }
 }

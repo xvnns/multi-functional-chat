@@ -7,7 +7,7 @@ import com.example.multifunctionalchat.exception.ChatNotFoundException;
 import com.example.multifunctionalchat.exception.DeleteFromDatabaseException;
 import com.example.multifunctionalchat.repository.ChatRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.access.annotation.Secured;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,15 +17,11 @@ import static com.example.multifunctionalchat.domain.RoleName.USER;
 
 @Service
 public class ChatService {
+    @Autowired
+    private ChatRepository chatRepository;
 
-    private final ChatRepository chatRepository;
     @Autowired
     private UserService userService;
-
-    @Autowired
-    public ChatService(ChatRepository chatRepository) {
-        this.chatRepository = chatRepository;
-    }
 
     @Transactional
     public void save(Chat chat) throws AddingToTheDatabaseException {
@@ -83,6 +79,7 @@ public class ChatService {
     public void addUserByLogin(String chatName, String username) throws AddingToTheDatabaseException, ChatNotFoundException {
         Chat chat = getChatByName(chatName);
         List<User> newUsers = chat.getUsers();
+
         User user = (User) userService.loadUserByUsername(username);
         if (!newUsers.contains(user)) {
             newUsers.add(user);
@@ -94,10 +91,10 @@ public class ChatService {
         }
     }
 
+    @PreAuthorize("hasAuthority('ADMIN') or hasAuthority('USER')")
     @Transactional
-    public void deleteUserById(Chat chat, Long userId) throws DeleteFromDatabaseException {
+    public void deleteUser(Chat chat, User user) throws DeleteFromDatabaseException {
         List<User> newUsers = chat.getUsers();
-        User user = userService.getUserById(userId);
         if (newUsers.contains(user)) {
             newUsers.remove(user);
             chat.setUsers(newUsers);
@@ -108,6 +105,7 @@ public class ChatService {
         }
     }
 
+    @PreAuthorize("hasAuthority('ADMIN') or hasAuthority('USER')")
     @Transactional
     public void deleteUserByLogin(String chatName, String userName) throws DeleteFromDatabaseException, ChatNotFoundException {
         Chat chat = getChatByName(chatName);
@@ -132,8 +130,8 @@ public class ChatService {
         save(chat);
     }
 
+    @PreAuthorize("hasAuthority('ADMIN') or hasAuthority('USER')")
     @Transactional
-    @Secured({"ADMIN", "USER"})
     public void renameRoom(String roomName, String newName) throws ChatNotFoundException {
         Chat chat = getChatByName(roomName);
         chat.setName(newName);
