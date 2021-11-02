@@ -9,6 +9,6 @@ import static java.util.Arrays.asList;
 public class YBotFindCommandSplitter implements IParameterSplitter {
     @Override
     public List<String> split(String s) {
-        return asList(s.split("||"));
+        return asList(s.split("\\|\\|"));
     }
 }

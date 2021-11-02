@@ -6,19 +6,24 @@ import com.example.multifunctionalchat.exception.AddingToTheDatabaseException;
 import com.example.multifunctionalchat.exception.ChatNotFoundException;
 import com.example.multifunctionalchat.exception.DeleteFromDatabaseException;
 import com.example.multifunctionalchat.repository.ChatRepository;
+import com.example.multifunctionalchat.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
-
-import static com.example.multifunctionalchat.domain.RoleName.USER;
+import static com.example.multifunctionalchat.domain.RoleName.ADMIN;
 
 @Service
 public class ChatService {
     @Autowired
     private ChatRepository chatRepository;
+
+    @Autowired
+    private UserRepository userRepository;
 
     @Autowired
     private UserService userService;
@@ -28,19 +33,22 @@ public class ChatService {
         if (!chatRepository.existsChatByName(chat.getName())) {
             chatRepository.saveAndFlush(chat);
         }
-        else {
-            throw new AddingToTheDatabaseException("Чат с таким названием уже существует");
-        }
+        else throw new AddingToTheDatabaseException("Чат с таким названием уже существует");
     }
 
+    @PreAuthorize("hasAuthority('ADMIN') or hasAuthority('USER')")
     @Transactional
-    public void removeRoom(String chatName) throws ChatNotFoundException {
-        Chat chat = getChatByName(chatName);
-        chatRepository.delete(chat);
+    public void removeRoom(Chat chat, User currentUser) throws ChatNotFoundException {
+        List<Chat> chatList = getChatListFromUser(currentUser);
+        if (currentUser.getRole().getName() == ADMIN || chatList.contains(chat)) {
+            chatList.remove(chat);
+            chatRepository.delete(chat);
+        }
+        else throw new AccessDeniedException("Невозможно удалить чат, недостаточно прав");
     }
 
     @Transactional(readOnly = true)
-    public Chat getChatById(Long id) throws IllegalArgumentException{
+    public Chat getChatById(Long id) throws IllegalArgumentException {
         return chatRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Invalid chat Id:" + id));
     }
 
@@ -51,7 +59,7 @@ public class ChatService {
 
     @Transactional(readOnly = true)
     public Chat getChatByName(String name) throws ChatNotFoundException {
-        Chat chat = chatRepository.findByName(name);
+        Chat chat = chatRepository.getChatByName(name);
         if (chat == null) {
             throw new ChatNotFoundException("Чат не найден");
         }
@@ -59,82 +67,79 @@ public class ChatService {
     }
 
     @Transactional
-    public void addUserById(Chat chat, Long userId, User registeredUser) throws AddingToTheDatabaseException {
+    public void addUser(Chat chat, User user, User registeredUser) throws AddingToTheDatabaseException {
         List<User> newUsers = chat.getUsers();
-        User user = userService.getUserById(userId);
-        if (registeredUser.getRole().getName() == USER && registeredUser.getId().equals(userId)) {
-            if (!newUsers.contains(user)) {
-                newUsers.add(user);
-                chat.setUsers(newUsers);
-                chatRepository.saveAndFlush(chat);
+        if (!registeredUser.isBlock() && !chat.isPrivate()) {
+            if (newUsers == null) {
+                newUsers = new ArrayList<>();
             }
-            else {
-                throw new AddingToTheDatabaseException("Данный пользователь уже находится в чате");
+            if (!newUsers.contains(user) && (newUsers.size() < 2 || !chat.isPrivate())) {
+                user.getChats().add(chat);
+                userRepository.saveAndFlush(user);
             }
+            else throw new AddingToTheDatabaseException("Невозможно добавить пользователя в комнату");
         }
-        else throw new AddingToTheDatabaseException("Невозможно добавить пользователя в БД");
-    }
-
-    @Transactional
-    public void addUserByLogin(String chatName, String username) throws AddingToTheDatabaseException, ChatNotFoundException {
-        Chat chat = getChatByName(chatName);
-        List<User> newUsers = chat.getUsers();
-
-        User user = (User) userService.loadUserByUsername(username);
-        if (!newUsers.contains(user)) {
-            newUsers.add(user);
-            chat.setUsers(newUsers);
-            chatRepository.saveAndFlush(chat);
-        }
-        else {
-            throw new AddingToTheDatabaseException("Данный пользователь уже находится в чате");
-        }
+        else throw new AddingToTheDatabaseException("Невозможно добавить пользователя в комнату, недостаточно прав");
     }
 
     @PreAuthorize("hasAuthority('ADMIN') or hasAuthority('USER')")
     @Transactional
-    public void deleteUser(Chat chat, User user) throws DeleteFromDatabaseException {
-        List<User> newUsers = chat.getUsers();
-        if (newUsers.contains(user)) {
-            newUsers.remove(user);
-            chat.setUsers(newUsers);
-            chatRepository.saveAndFlush(chat);
+    public void deleteUser(Chat chat, User user, User registeredUser) throws DeleteFromDatabaseException {
+        List<Chat> chatList = getChatListFromUser(registeredUser);
+        if (!chat.getCreator().equals(user)) {
+            if (registeredUser.getRole().getName() == ADMIN || chatList.contains(chat)) {
+                List<User> newUsers = chat.getUsers();
+                if (newUsers.contains(user)) {
+                    user.getChats().remove(chat);
+                    userRepository.saveAndFlush(user);
+                }
+                else throw new DeleteFromDatabaseException("Данный пользователь не найден в чате");
+            }
+            else throw new AccessDeniedException("Невозможно удалить чат, недостаточно прав");
         }
-        else {
-            throw new DeleteFromDatabaseException("Данный пользователь не найден в чате");
+        else throw new DeleteFromDatabaseException("Нельзя удалить из комнаты создателя комнаты");
+    }
+
+    @Transactional(readOnly = true)
+    public List<Chat> getChatListFromUser(User user) {
+        return chatRepository.getChatListByUserId(user.getId());
+    }
+
+    @Transactional
+    public void createRoom(String name, User registeredUser) throws AddingToTheDatabaseException {
+        if (!registeredUser.isBlock()) {
+            Chat chat = new Chat();
+            chat.setName(name);
+            chat.setPrivate(false);
+            chat.setCreator(registeredUser);
+            save(chat);
+            addUser(chat, registeredUser, registeredUser);
         }
+        else throw new AccessDeniedException("Невозможно создать комнату, недостаточно прав");
+    }
+
+    @Transactional
+    public void createPrivateRoom(String name, User registeredUser) throws AddingToTheDatabaseException {
+        if (!registeredUser.isBlock()) {
+            Chat chat = new Chat();
+            chat.setName(name);
+            chat.setPrivate(true);
+            chat.setCreator(registeredUser);
+            save(chat);
+            addUser(chat, registeredUser, registeredUser);
+        }
+        else throw new AccessDeniedException("Невозможно создать комнату, недостаточно прав");
     }
 
     @PreAuthorize("hasAuthority('ADMIN') or hasAuthority('USER')")
     @Transactional
-    public void deleteUserByLogin(String chatName, String userName) throws DeleteFromDatabaseException, ChatNotFoundException {
-        Chat chat = getChatByName(chatName);
-        List<User> newUsers = chat.getUsers();
-        User user = (User) userService.loadUserByUsername(userName);
-        if (newUsers.contains(user)) {
-            newUsers.remove(user);
-            chat.setUsers(newUsers);
-            chatRepository.saveAndFlush(chat);
+    public void renameRoom(Chat chat, String name, User registeredUser) {
+        List<Chat> chatList = getChatListFromUser(registeredUser);
+        if (registeredUser.getRole().getName() == ADMIN || chatList.contains(chat)) {
+            chat.setName(name);
+            chatRepository.save(chat);
         }
-        else {
-            throw new DeleteFromDatabaseException("Данный пользователь не найден в чате");
-        }
+        else throw new AccessDeniedException("Невозможно создать комнату, недостаточно прав");
     }
 
-    @Transactional
-    public void createPrivateRoom(String name, User user) throws AddingToTheDatabaseException {
-        Chat chat = new Chat();
-        chat.setName(name);
-        chat.setPrivate(true);
-        chat.setCreator(user);
-        save(chat);
-    }
-
-    @PreAuthorize("hasAuthority('ADMIN') or hasAuthority('USER')")
-    @Transactional
-    public void renameRoom(String roomName, String newName) throws ChatNotFoundException {
-        Chat chat = getChatByName(roomName);
-        chat.setName(newName);
-        chatRepository.saveAndFlush(chat);
-    }
 }

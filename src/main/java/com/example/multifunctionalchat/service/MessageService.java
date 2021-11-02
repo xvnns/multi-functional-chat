@@ -5,18 +5,21 @@ import com.example.multifunctionalchat.domain.ChatMessage;
 import com.example.multifunctionalchat.domain.Message;
 import com.example.multifunctionalchat.domain.User;
 import com.example.multifunctionalchat.exception.ChatNotFoundException;
-import com.example.multifunctionalchat.exception.DeleteFromDatabaseException;
 import com.example.multifunctionalchat.repository.MessageRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.access.annotation.Secured;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 
 import java.util.Date;
-import java.util.List;
 
 @Service
 public class MessageService {
+
     @Autowired
     private MessageRepository messageRepository;
 
@@ -26,8 +29,11 @@ public class MessageService {
     @Autowired
     UserService userService;
 
+    @Autowired
+    BotService botService;
+
     @Transactional
-    public boolean sendMessage(ChatMessage chatMessage) throws ChatNotFoundException {
+    public void sendMessage(ChatMessage chatMessage) throws ChatNotFoundException {
         User creator = (User) userService.loadUserByUsername(chatMessage.getAuthor());
         if (!creator.isBlock()) {
             Message message = new Message();
@@ -36,24 +42,16 @@ public class MessageService {
             message.setContent(chatMessage.getText());
             message.setDate(new Date());
             messageRepository.saveAndFlush(message);
-            return true;
         }
-        return false;
+        else throw new AccessDeniedException("Невозможно отправить сообщение, недостаточно прав");
     }
 
     @Transactional
-    @Secured({"ADMIN", "MODERATOR"})
-    public void delete(Message message) throws DeleteFromDatabaseException {
-        if (messageRepository.existsById(message.getId())) {
-            messageRepository.delete(message);
+    public void save(Message message) {
+        User creator = message.getUser();
+        if (!creator.isBlock()) {
+            messageRepository.saveAndFlush(message);
         }
-        else {
-            throw new DeleteFromDatabaseException("Сообщения нет в базе данных");
-        }
-    }
-
-    @Transactional(readOnly = true)
-    public Message getById(Long id) throws IllegalArgumentException{
-        return messageRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Invalid message Id:" + id));
+        else throw new AccessDeniedException("Невозможно отправить сообщение, недостаточно прав");
     }
 }

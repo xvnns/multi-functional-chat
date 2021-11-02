@@ -1,38 +1,38 @@
 package com.example.multifunctionalchat.controller;
-
 import com.example.multifunctionalchat.domain.Chat;
 import com.example.multifunctionalchat.domain.ChatMessage;
 import com.example.multifunctionalchat.domain.Message;
 import com.example.multifunctionalchat.domain.User;
+import com.example.multifunctionalchat.exception.AddingToTheDatabaseException;
 import com.example.multifunctionalchat.exception.ChatNotFoundException;
 import com.example.multifunctionalchat.exception.DeleteFromDatabaseException;
+import com.example.multifunctionalchat.service.BotService;
 import com.example.multifunctionalchat.service.ChatService;
 import com.example.multifunctionalchat.service.MessageService;
+import com.example.multifunctionalchat.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.handler.annotation.SendTo;
-import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
-import org.springframework.security.access.annotation.Secured;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.validation.BindingResult;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+
+import java.util.Date;
 
 @Controller
-//@RequestMapping("/message")
 public class MessageController {
 
-    private final MessageService messageService;
+    @Autowired
+    private MessageService messageService;
 
     @Autowired
     private ChatService chatService;
 
     @Autowired
-    public MessageController(MessageService messageService) {
-        this.messageService = messageService;
-    }
+    private BotService botService;
 
     @MessageMapping("/chat.sendMessage")
     @SendTo("/topic/public")
@@ -45,37 +45,21 @@ public class MessageController {
         return chatMessage;
     }
 
-
-    /*
-    //ограничение на длину сообщения
-    @PostMapping("/add-message/{chat_id}")
-    public String addMessage(@ModelAttribute("message") Message message, @PathVariable("chat_id") Long chatId,
-                             BindingResult bindingResult, Authentication authentication, Model model) {
-        if (bindingResult.hasErrors()) {
-            model.addAttribute("error", "Ошибка, сообщение не может быть отправлено");
-            return "room";
-        }
-        User user = (User) authentication.getPrincipal();
-        Chat chat = chatService.getChatById(chatId);
-        if (!user.isBlock()) {
-            messageService.sendMessage(chatId, user, message.getContent());
-        }
-        else {
-            model.addAttribute("error", "Ошибка, невозможно отправить сообщение");
-        }
-        return "redirect:/chat/#" + chat.getName();
-    }*/
-
-    @Secured({"ADMIN", "MODERATOR"})
-    @GetMapping("/delete/{id}")
-    public String deleteMessage(@PathVariable("id") long id, @RequestParam Long chatId,
-                                Model model) {
-        Message message = messageService.getById(id);
+    @PostMapping("{chatName}/message/send")
+    public String send(@PathVariable("chatName") String chatName, Message message,
+                       @AuthenticationPrincipal User currentUser, Model model) {
         try {
-            messageService.delete(message);
-        } catch (DeleteFromDatabaseException e) {
+            Chat chat = chatService.getChatByName(chatName);
+            message.setChat(chat);
+            message.setDate(new Date());
+            message.setUser(currentUser);
+            messageService.save(message);
+            if (chatName.equals("yBot")) {
+                botService.getCommand(message.getContent(), currentUser);
+            }
+        } catch (ChatNotFoundException | AddingToTheDatabaseException | DeleteFromDatabaseException e) {
             model.addAttribute("error", e.getMessage());
         }
-        return "redirect:/chat?chatId=" + chatId;
+        return "redirect:/chat/get/yBot";
     }
 }

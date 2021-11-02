@@ -1,9 +1,9 @@
 package com.example.multifunctionalchat.domain;
 
 import org.springframework.security.core.GrantedAuthority;
-
 import javax.persistence.*;
 import javax.validation.constraints.NotNull;
+import java.util.Objects;
 import java.util.Set;
 
 @Entity
@@ -20,7 +20,7 @@ public class Role implements GrantedAuthority {
     @Enumerated(value = EnumType.STRING)
     private RoleName name;
 
-    @OneToMany(fetch = FetchType.LAZY, mappedBy = "role")
+    @OneToMany(fetch = FetchType.LAZY, mappedBy = "role", orphanRemoval = true)
     private Set<User> users;
 
     public Role() {}
@@ -60,6 +60,19 @@ public class Role implements GrantedAuthority {
                 "id=" + id +
                 ", name=" + name +
                 '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Role role = (Role) o;
+        return id.equals(role.id) && name == role.name;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, name);
     }
 
     @Override

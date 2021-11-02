@@ -4,6 +4,7 @@ import com.example.multifunctionalchat.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
@@ -13,6 +14,7 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.authentication.logout.HttpStatusReturningLogoutSuccessHandler;
 
 @Configuration
 @EnableWebSecurity
@@ -36,7 +38,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
              .authorizeRequests()
                 .antMatchers("/registration").not().fullyAuthenticated()
                 .antMatchers("/", "/registration").permitAll()
-                .antMatchers("/css/**").permitAll()
+                .antMatchers("/css/**", "/js/**").permitAll()
                 .anyRequest().authenticated()
              .and()
                 .formLogin()
@@ -45,7 +47,9 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
                 .permitAll()
              .and()
                 .logout()
-                .permitAll();
+                .permitAll()
+                .logoutUrl("/logout")
+                .logoutSuccessUrl("/login");
     }
 
     @Override

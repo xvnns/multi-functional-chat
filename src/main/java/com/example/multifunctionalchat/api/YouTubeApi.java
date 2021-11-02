@@ -113,10 +113,9 @@ public class YouTubeApi {
                 .execute();
         List<SearchResult> results = response.getItems();
         for (SearchResult res: results) {
+            builder.append(" https://www.youtube.com/watch?v=");
             builder.append(res.getId().getVideoId());
         }
         return builder.toString();
     }
-
-
 }

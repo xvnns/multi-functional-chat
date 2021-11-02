@@ -3,15 +3,16 @@ package com.example.multifunctionalchat.controller;
 import com.example.multifunctionalchat.domain.User;
 import com.example.multifunctionalchat.exception.AddingToTheDatabaseException;
 import com.example.multifunctionalchat.exception.DeleteFromDatabaseException;
+import com.example.multifunctionalchat.exception.EditRoleException;
 import com.example.multifunctionalchat.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
+import java.util.List;
 
 @Controller
 @RequestMapping("/users")
@@ -26,16 +27,17 @@ public class UserController {
 
     @GetMapping
     public String getUserList(@AuthenticationPrincipal User currentUser, Model model) {
+        List<User> users = userService.getAll();
+        users.removeIf(user -> user.getUsername().equals("yBot"));
         model.addAttribute("currentUser", currentUser);
-        model.addAttribute("users", userService.getAll());
+        model.addAttribute("users", users);
         return "users";
     }
 
     @GetMapping("/get/{id}")
-    public String getUser(@PathVariable Long id, Model model) {
-        User user = userService.getUserById(id);
-        model.addAttribute("user", user);
-        return "users";
+    public String getRegisteredUser(@PathVariable Long id, @AuthenticationPrincipal User currentUser, Model model) {
+        model.addAttribute("user", userService.getUserById(id));
+        return "userPage";
     }
 
     @PostMapping("/add-user/{id}")
@@ -53,33 +55,51 @@ public class UserController {
 
     @PreAuthorize("hasAuthority('ADMIN')")
     @GetMapping("/make-moderator/{id}")
-    public String makeModerator(@PathVariable("id") Long id) {
+    public String makeModerator(@PathVariable("id") Long id, Model model) {
         User user = userService.getUserById(id);
-        userService.makeModerator(user);
+        try {
+            userService.makeModerator(user);
+        } catch (EditRoleException e) {
+            model.addAttribute("error", e.getMessage());
+        }
         return "redirect:/users";
     }
 
     @PreAuthorize("hasAuthority('ADMIN')")
     @GetMapping("/make-user/{id}")
-    public String makeUser(@PathVariable("id") Long id) {
+    public String makeUser(@PathVariable("id") Long id, Model model) {
         User user = userService.getUserById(id);
-        userService.makeUser(user);
+        try {
+            userService.makeUser(user);
+        } catch (EditRoleException e) {
+            model.addAttribute("error", e.getMessage());
+        }
         return "redirect:/users";
     }
 
     @PreAuthorize("hasAuthority('ADMIN')")
     @GetMapping("/rename/{id}")
-    public String renameForm(@PathVariable("id") Long id, Model model) {
+    public String renameForm(@PathVariable("id") Long id, @AuthenticationPrincipal User currentUser, Model model) {
+        model.addAttribute("user", userService.getUserById(id));
+        model.addAttribute("currentUser", currentUser);
+        return "renameUser";
+    }
+
+    @PreAuthorize("hasAuthority('ADMIN')")
+    @PostMapping("/rename/{id}")
+    public String renameUser(@PathVariable("id") Long id, @RequestParam(value = "message-text") String login,
+                             @AuthenticationPrincipal User currentUser) {
         User user = userService.getUserById(id);
-        model.addAttribute("user", user);
-        return "rename";
+        userService.renameUser(user, login, currentUser);
+        return "redirect:/users";
     }
 
     @PreAuthorize("hasAuthority('ADMIN')")
     @GetMapping("/delete/{id}")
     public String deleteUser(@PathVariable("id") long userId, Model model) {
         try {
-            userService.deleteUser(userId);
+            User user = userService.getUserById(userId);
+            userService.deleteUser(user);
         } catch (DeleteFromDatabaseException e) {
             model.addAttribute("error", e.getMessage());
         }
@@ -90,7 +110,7 @@ public class UserController {
     @GetMapping("/block/{id}")
     public String blockUser(@PathVariable("id") long id) {
         User user = userService.getUserById(id);
-        userService.blockUser(user.getUsername());
+        userService.blockUser(user);
         return "redirect:/users";
     }
 
@@ -98,7 +118,7 @@ public class UserController {
     @GetMapping("/unblock/{id}")
     public String unblockUser(@PathVariable("id") long id) {
         User user = userService.getUserById(id);
-        userService.unblockUser(user.getUsername());
+        userService.unblockUser(user);
         return "redirect:/users";
     }
 }

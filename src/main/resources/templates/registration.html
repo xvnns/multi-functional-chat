@@ -7,6 +7,7 @@
     <link rel="stylesheet" th:href="@{/css/signin.css}">
 </head>
 <body>
+<span th:text="${error}"></span>
     <form action="#" th:action="@{/registration}" th:object="${user}" class="form-signin" method="post">
         <h1 class="h3 mb-3 font-weight-normal text-center">Registration</h1>
         <label for="username" class="sr-only">Login</label>

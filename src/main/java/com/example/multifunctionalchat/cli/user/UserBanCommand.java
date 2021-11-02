@@ -25,8 +25,7 @@ public class UserBanCommand {
 
     @Parameter(
             names = { "-d" },
-            order = 3,
-            required = true
+            order = 3
     )
     private int minutes;
 

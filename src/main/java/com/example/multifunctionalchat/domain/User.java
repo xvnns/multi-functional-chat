@@ -2,16 +2,12 @@ package com.example.multifunctionalchat.domain;
 
 import lombok.Data;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-
 import javax.persistence.*;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.Pattern;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Set;
+import java.util.*;
 
 @Data
 @Entity
@@ -33,24 +29,23 @@ public class User implements UserDetails {
 
     @ManyToOne
     @JoinColumn(name = "role_id")
-
     private Role role;
 
     @Column(name = "block")
     private boolean block;
 
-    @ManyToMany
+    @ManyToMany(fetch=FetchType.EAGER)
     @JoinTable(name = "chat_user",
             joinColumns = @JoinColumn(name = "user_id", referencedColumnName = "id"),
             inverseJoinColumns = @JoinColumn(name = "chat_id", referencedColumnName = "id")
     )
-    private Set<Chat> chats;
+    private List<Chat> chats = new ArrayList<>();
 
-    @OneToMany(fetch = FetchType.LAZY, mappedBy = "user")
-    private Set<Message> messages;
+    @OneToMany(fetch = FetchType.LAZY, mappedBy = "user", orphanRemoval = true)
+    private List<Message> messages = new ArrayList<>();
 
-    @OneToMany(fetch = FetchType.LAZY, mappedBy = "creator")
-    private Set<Chat> createdChats;
+    @OneToMany(fetch = FetchType.LAZY, mappedBy = "creator", orphanRemoval=true)
+    private List<Chat> createdChats = new ArrayList<>();
 
    @Override
     public String toString() {
@@ -60,6 +55,19 @@ public class User implements UserDetails {
                 ", role=" + role +
                 ", blockUser=" + block +
                 '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        User user = (User) o;
+        return block == user.block && id.equals(user.id) && username.equals(user.username) && password.equals(user.password) && role.equals(user.role);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, username, password, role, block);
     }
 
     @Override

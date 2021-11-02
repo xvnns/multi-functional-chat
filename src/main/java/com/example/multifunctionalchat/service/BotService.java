@@ -1,97 +1,66 @@
 package com.example.multifunctionalchat.service;
 
 import com.beust.jcommander.JCommander;
-import com.beust.jcommander.ParameterException;
 import com.example.multifunctionalchat.api.YouTubeApi;
-import com.example.multifunctionalchat.cli.bot.YBotChannelInfo;
-import com.example.multifunctionalchat.cli.bot.YBotFindCommand;
-import com.example.multifunctionalchat.cli.bot.YBotHelpCommand;
+import com.example.multifunctionalchat.cli.bot.*;
 import com.example.multifunctionalchat.cli.room.*;
 import com.example.multifunctionalchat.cli.splitter.InputCommandSplitter;
-import com.example.multifunctionalchat.cli.user.UserBanCommand;
-import com.example.multifunctionalchat.cli.user.UserModeratorCommand;
-import com.example.multifunctionalchat.cli.user.UserRenameCommand;
+import com.example.multifunctionalchat.cli.user.*;
 import com.example.multifunctionalchat.domain.*;
-import com.example.multifunctionalchat.exception.AddingToTheDatabaseException;
-import com.example.multifunctionalchat.exception.ChatNotFoundException;
-import com.example.multifunctionalchat.exception.DeleteFromDatabaseException;
+import com.example.multifunctionalchat.exception.*;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
-
 import java.io.IOException;
+import java.util.Date;
 
 @Service
 public class BotService {
 
     @Autowired
-    UserService userService;
+    public UserService userService;
+
     @Autowired
-    ChatService chatService;
+    public ChatService chatService;
+
     @Autowired
-    MessageService messageService;
+    public MessageService messageService;
 
-    private JCommander jCommander;
+    public JCommander jCommander;
 
-    /*public void reloadUsers() throws ChatNotFoundException {
-        Chat chat = chatService.getChatByName("yBot");
-        List<User> chatBotUsers = chat.getUsers();
-        for (User user : userService.getAll()) {
-            if (!chatBotUsers.contains(user)) {
-                chatBotUsers.add(user);
-            }
-        }*/
-        // messageService.sendMessage(chat.getId(), (User) userService.loadUserByUsername("yBot"), loadHelpMessage());
-   // }
+    public void getCommand(String comm, User user) throws AddingToTheDatabaseException, ChatNotFoundException, DeleteFromDatabaseException {
+        Message botMessage = new Message();
+        botMessage.setChat(chatService.getChatByName("yBot"));
+        botMessage.setUser((User) userService.loadUserByUsername("yBot"));
+        botMessage.setDate(new Date());
 
-    public void getCommand(String comm, Authentication authentication) {
-        User user = (User) authentication.getPrincipal();
         InputCommandSplitter inputCommandSplitter = new InputCommandSplitter();
         String[] command = inputCommandSplitter.split(comm).toArray(new String[0]);
-
-        ChatMessage chatMessage = new ChatMessage();
-        chatMessage.setAuthor("yBot");
-        chatMessage.setRoom("yBot");
-
         switch (command[0]) {
             case ("//user"):
-                try {
-                    userCommand(command, user);
-                } catch (AddingToTheDatabaseException|ParameterException e) {
-                    e.printStackTrace();
-                }
+                botMessage.setContent(userCommand(command, user));
                 break;
-
             case ("//room"):
-                try {
-                    roomCommand(command, user);
-                } catch (AddingToTheDatabaseException | ChatNotFoundException | DeleteFromDatabaseException |
-                        ParameterException e) {
-                    e.printStackTrace();
-                }
+                botMessage.setContent(roomCommand(command, user));
                 break;
-
             case ("//yBot"):
                 switch (command[1]) {
                     case ("find"):
-                        find(command);
-                        //отправить рез-т юзеру
+                        botMessage.setContent(find(command));
                         break;
                     case ("help") :
-                        help(command);
-                        //отправить рез-т юзеру
+                        //help(command);
                         break;
                     case ("channelInfo") :
-                        channelInfo(command);
-                        //отправить рез-т юзеру
+                        botMessage.setContent(channelInfo(command));
                         break;
-                    case ("videoCommentRandom") :
-                        //botService.help(command);
-                        //отправить рез-т юзеру
-                        break;
+                    default:
+                        botMessage.setContent("Не удалось распознать команду");
                 }
                 break;
+            default:
+                botMessage.setContent("Не удалось распознать команду");
         }
+        messageService.save(botMessage);
     }
 
     public String find(String[] command) {
@@ -100,27 +69,23 @@ public class BotService {
         jCommander = JCommander.newBuilder().addCommand(yBotFindCommand).build();
         jCommander.parse(command);
         YouTubeApi youTubeApi = new YouTubeApi();
-
         try {
-            ms.append(youTubeApi.getUrl(yBotFindCommand.getNames().get(0), yBotFindCommand
-                    .getNames().get(1)));
+            ms.append(youTubeApi.getUrl(yBotFindCommand.getNames().get(0), yBotFindCommand.getNames().get(1)));
         } catch (IOException e) {
-            e.printStackTrace();
+            ms.append(e.getMessage());
         }
         if (yBotFindCommand.isLikesNumber()) {
             try {
-                ms.append(youTubeApi.likeCount(yBotFindCommand.getNames().get(0), yBotFindCommand
-                        .getNames().get(1)));
+                ms.append(youTubeApi.likeCount(yBotFindCommand.getNames().get(0), yBotFindCommand.getNames().get(1)));
             } catch (IOException e) {
-                e.printStackTrace();
+                ms.append(e.getMessage());
             }
         }
         if (yBotFindCommand.isViewsNumber()) {
             try {
-                ms.append(youTubeApi.viewCount(yBotFindCommand.getNames().get(0), yBotFindCommand
-                        .getNames().get(1)));
+                ms.append(youTubeApi.viewCount(yBotFindCommand.getNames().get(0), yBotFindCommand.getNames().get(1)));
             } catch (IOException e) {
-                e.printStackTrace();
+                ms.append(e.getMessage());
             }
         }
         return ms.toString();
@@ -131,61 +96,99 @@ public class BotService {
         jCommander = JCommander.newBuilder().addCommand(yBotHelpCommand).build();
         jCommander.parse(command);
     }
-    public void channelInfo(String[] command) {
-        jCommander = JCommander.newBuilder().addCommand(new YBotChannelInfo()).build();
+
+    public String channelInfo(String[] command) {
+        StringBuilder ms = new StringBuilder();
+        YBotChannelInfo yBotChannelInfo = new YBotChannelInfo();
+        jCommander = JCommander.newBuilder().addCommand(yBotChannelInfo).build();
         jCommander.parse(command);
+        YouTubeApi youTubeApi = new YouTubeApi();
+        try {
+            ms.append(youTubeApi.channelInfo(yBotChannelInfo.getName()));
+        } catch (IOException e) {
+            ms.append(e.getMessage());
+        }
+        return ms.toString();
     }
 
-    public void userCommand(String[] command, User registeredUser) throws AddingToTheDatabaseException, ParameterException {
-        String login;
-        String newLogin;
+    public String userCommand(String[] command, User registeredUser) {
+        String str;
         switch (command[1]) {
             case ("rename"):
                 UserRenameCommand userRenameCommand = new UserRenameCommand();
                 jCommander = JCommander.newBuilder().addCommand(userRenameCommand).build();
                 jCommander.parse(command);
-                login = userRenameCommand.getUserLogin();
-                newLogin = userRenameCommand.getNewUserLogin();
-                userService.updateLogin(login, newLogin, registeredUser);
+                String login = userRenameCommand.getUserLogin();
+                String newLogin = userRenameCommand.getNewUserLogin();
+                userService.renameUser((User) userService.loadUserByUsername(login), newLogin, registeredUser);
+                str = "Пользователь переименован";
                 break;
             case ("ban"):
                 UserBanCommand userBanCommand = new UserBanCommand();
                 jCommander = JCommander.newBuilder().addCommand(userBanCommand).build();
                 jCommander.parse(command);
                 login = userBanCommand.getLogin();
-                userService.blockUser(login);
+                userService.blockUser((User) userService.loadUserByUsername(login));
+                str = "Пользователь заблокирован";
                 break;
             case ("moderator"):
                 UserModeratorCommand userModeratorCommand = new UserModeratorCommand();
                 jCommander = JCommander.newBuilder().addCommand(userModeratorCommand).build();
                 jCommander.parse(command);
                 login = userModeratorCommand.getUserLogin();
-                if (userModeratorCommand.isModerator()) {
-                   // userService.updateUserRole(login, RoleName.MODERATOR);
-                } else {
-                   // userService.updateUserRole(login, RoleName.USER);
+                User user = (User) userService.loadUserByUsername(login);
+                try {
+                    if (userModeratorCommand.isModerator()) {
+                        userService.makeModerator(user);
+                        str = "Пользователь назначен модератором";
+                    } else {
+                       userService.makeUser(user);
+                       str = "Пользователь больше не является модератором";
+                    }
+                } catch (EditRoleException e) {
+                    str = e.getMessage();
                 }
                 break;
+            default:
+                str = "Не удалось распознать команду";
+                break;
         }
+        return str;
     }
 
-    public void roomCommand(String[] command, User user) throws AddingToTheDatabaseException, ChatNotFoundException, DeleteFromDatabaseException {
+    public String roomCommand(String[] command, User registeredUser) {
         String room;
         String userLogin;
+        String str;
         switch (command[1]) {
             case ("create"):
                 RoomCreateCommand roomCreateCommand = new RoomCreateCommand();
                 jCommander = JCommander.newBuilder().addCommand(roomCreateCommand).build();
                 jCommander.parse(command);
                 room = roomCreateCommand.getRoomName();
-                chatService.createPrivateRoom(room, user);
+                try {
+                    if (roomCreateCommand.isPrivate()) {
+                        chatService.createPrivateRoom(room, registeredUser);
+                    }
+                    else {
+                        chatService.createRoom(room, registeredUser);
+                    }
+                    str = "Комната создана";
+                } catch (AddingToTheDatabaseException e) {
+                    str = e.getMessage();
+                }
                 break;
             case ("remove"):
                 RoomRemoveCommand roomRemoveCommand = new RoomRemoveCommand();
                 jCommander = JCommander.newBuilder().addCommand(roomRemoveCommand).build();
                 jCommander.parse(command);
                 room = roomRemoveCommand.getRoomName();
-                chatService.removeRoom(room);
+                try {
+                    chatService.removeRoom(chatService.getChatByName(room), registeredUser);
+                    str = "Пользователь был удален из чата";
+                } catch (ChatNotFoundException e) {
+                    str = e.getMessage();
+                }
                 break;
             case ("rename"):
                 RoomRenameCommand roomRenameCommand = new RoomRenameCommand();
@@ -193,7 +196,12 @@ public class BotService {
                 jCommander.parse(command);
                 room = roomRenameCommand.getRoomName();
                 String newName = roomRenameCommand.getNewRoomName();
-                chatService.renameRoom(room, newName);
+                try {
+                    chatService.renameRoom(chatService.getChatByName(room), newName, registeredUser);
+                    str = "Комната была переименована";
+                } catch (ChatNotFoundException e) {
+                    str = e.getMessage();
+                }
                 break;
             case ("connect"):
                 RoomConnectCommand roomConnectCommand = new RoomConnectCommand();
@@ -201,21 +209,37 @@ public class BotService {
                 jCommander.parse(command);
                 room = roomConnectCommand.getRoomName();
                 userLogin = roomConnectCommand.getUserLogin();
-                chatService.addUserByLogin(room, userLogin);
+                try {
+                    chatService.addUser(chatService.getChatByName(room), (User) userService.loadUserByUsername(userLogin),
+                            registeredUser);
+                    str = "Пользователь был добавлен в чат";
+                } catch (AddingToTheDatabaseException | ChatNotFoundException e) {
+                    str = e.getMessage();
+                }
                 break;
             case ("disconnect"):
                 RoomDisconnectCommand roomDisconnectCommand = new RoomDisconnectCommand();
                 jCommander = JCommander.newBuilder().addCommand(roomDisconnectCommand).build();
                 jCommander.parse(command);
                 room = roomDisconnectCommand.getRoomName();
-                if (roomDisconnectCommand.getUserLogin()!= null) {
-                    userLogin = roomDisconnectCommand.getUserLogin();
-                    chatService.deleteUserByLogin(room, userLogin);
-                }
-                else {
-                    chatService.deleteUserByLogin(room, user.getUsername());
+                try {
+                    if (roomDisconnectCommand.getUserLogin()!= null) {
+                        userLogin = roomDisconnectCommand.getUserLogin();
+                        chatService.deleteUser(chatService.getChatByName(room),
+                                (User) userService.loadUserByUsername(userLogin), registeredUser);
+                    }
+                    else {
+                        chatService.deleteUser(chatService.getChatByName(room), registeredUser, registeredUser);
+                    }
+                    str = "Пользователь был удален из чата";
+                } catch (DeleteFromDatabaseException | ChatNotFoundException e) {
+                    str = e.getMessage();
                 }
                 break;
+            default:
+                str = "Не удалось распознать команду";
+                break;
         }
+        return str;
     }
 }

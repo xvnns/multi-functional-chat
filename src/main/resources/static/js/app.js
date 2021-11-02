@@ -24,7 +24,6 @@ function onError(error) {
 }
 
 function sendMessage(event) {
-    var thisChatName = document.querySelector('#chatName').textContent.trim();
     if (!stompClient) {
         username = document.querySelector('#name').textContent.trim();
         if (username) {
@@ -76,5 +75,6 @@ function func(event) {
 }
 
 messageForm.addEventListener('submit', sendMessage, true);
+
 chatForm.addEventListener('click', func, true)
-//document.querySelector('#send').click();
+document.querySelector('#send').click();

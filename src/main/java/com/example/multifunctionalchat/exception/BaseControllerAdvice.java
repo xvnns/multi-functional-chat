@@ -33,8 +33,8 @@ public class BaseControllerAdvice {
         return response(HttpStatus.FORBIDDEN, ex, request);
     }
 
-    @ExceptionHandler(RoleNotFounException.class)
-    public Object roleNotFoundException(RoleNotFounException ex, WebRequest request) {
+    @ExceptionHandler(EditRoleException.class)
+    public Object roleNotFoundException(EditRoleException ex, WebRequest request) {
          return response(HttpStatus.FORBIDDEN, ex, request);
     }
 
