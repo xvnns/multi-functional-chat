@@ -22,4 +22,4 @@
 ![alt text](https://github.com/xvnns/multi-functional-chat/blob/main/screenshots/3.jpg)
 
 ### Все пользователи
-![alt text](https://github.com/xvnns/multi-functional-chat/blob/main/screenshots/3.jpg)
+![alt text](https://github.com/xvnns/multi-functional-chat/blob/main/screenshots/4.jpg)
